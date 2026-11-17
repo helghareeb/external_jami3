@@ -49,7 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NumberingProvider>
           <NumeralProvider>
             <NumeralConverter />
-            <Analytics />
+            <Suspense fallback={null}><Analytics /></Suspense>
             <InstallApp />
             <OfflineOffer />
             <LibraryImport />

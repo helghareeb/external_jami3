@@ -7,11 +7,11 @@ import Dashboard from './Dashboard'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'الإحصاءات — الجامع', robots: { index: false, follow: false } }
 
-// Private statistics: sign-ups, MCP use and site traffic (Dashboard.tsx). Behind sign-in, an admin
+// Private statistics: site traffic, MCP use and sign-ups for any period (Dashboard.tsx, range.ts). Behind sign-in, an admin
 // email (ADMIN_EMAILS) and the ADMIN_PASSWORD (lib/adminGate.ts). Anyone else gets a 404, so the
 // page's existence is not shown.
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await currentUser()
   if (!user) redirect('/login?next=/admin')
   if (!isAdmin(user)) notFound()
@@ -26,7 +26,7 @@ export default async function AdminPage() {
     )
   }
   return (
-    <Dashboard lockForm={
+    <Dashboard searchParams={await searchParams} lockForm={
       <form action="/api/admin/lock" method="post" className="shrink-0">
         <button type="submit" className="rounded-lg border border-border px-4 py-2 text-sm sm:text-[1.1rem] text-gray-600 hover:border-red-300 hover:text-red-700">قفل</button>
       </form>

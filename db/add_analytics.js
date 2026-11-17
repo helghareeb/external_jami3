@@ -43,13 +43,20 @@ CREATE TABLE IF NOT EXISTS mcp_events (
   ms       int
 );
 CREATE INDEX IF NOT EXISTS mcp_events_ts ON mcp_events (ts);
+
+-- Detail for the dashboard (added 2026-11): rows before then have these empty
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS browser text;  -- Chrome, Safari… or the crawler's name
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS os      text;  -- Windows, Android, iOS…
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS lang    text;  -- navigator.language, e.g. ar-SA
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS tz      text;  -- the browser's time zone, e.g. Asia/Riyadh (the country, without looking up the IP)
+ALTER TABLE page_views ADD COLUMN IF NOT EXISTS q       text;  -- the search words (?q=) on the page, if any
 `
 
 async function main() {
   const pool = new Pool({ connectionString: connectionString(), ssl: { rejectUnauthorized: false }, max: 1 })
   try {
     await pool.query(SQL)
-    console.log('page_views, mcp_events ready')
+    console.log('page_views (with browser, os, lang, tz, q), mcp_events ready')
   } finally {
     await pool.end()
   }
