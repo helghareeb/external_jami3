@@ -8,6 +8,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* values are written into the browser code at build time; Railway passes a service
+# variable into a Docker build only when it is declared here. Where installed apps download the
+# offline edition from (Cloudflare R2, https://files.hadith.dev/offline); unset → the site's proxy.
+ARG NEXT_PUBLIC_OFFLINE_DATA_URL
+ENV NEXT_PUBLIC_OFFLINE_DATA_URL=$NEXT_PUBLIC_OFFLINE_DATA_URL
 RUN rm -rf .next/cache && npm run build
 
 FROM node:20-alpine AS runner
