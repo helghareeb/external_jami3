@@ -11,6 +11,8 @@ This finds every such tag by the edition text that follows it, and writes the co
   - tarqeem_matboa1 «62» → «62 (م 1)» on rows whose own number is the «م» item (not rows where the
     item only stands in front of the row's hadith)
   - 18 numbers the import wrote twice, side by side, keep one copy (the edition prints each once)
+  - 8 Abu Dawud rows get their own printed number back; 2 rows get the right number column
+    (hand-checked lists below)
 
 Read-only against the database; writes number-updates.jsonl for tools/apply_numbers_postgres.mjs.
 
@@ -33,6 +35,13 @@ MARK = re.compile(r"(?<![٠-٩])([٠-٩]+)\s*(?:\((م[^)]*)\))?\s*-")
 # Chapter numbers the import tagged as hadith numbers, checked by hand against the edition pages
 # (Sultaniyya page 451, Turkish Muslim page 79): (main_id, tag value) → the text as printed.
 CHAPTER_NUMBERS = {(460, "8"): "٨ - ", (11631, "1"): "١ - "}
+# Abu Dawud rows whose own printed number the import left out (the text starts with the edition's
+# hadith of that number — checked against the Delhi pages); the tag goes before the text.
+MISSING_LEAD_TAG = {90197: "859", 90073: "761", 93547: "3277", 91990: "2215", 94950: "4299",
+                    95105: "4423", 90304: "941", 93644: "3337"}
+# Number column wrong although the text is right: Muslim narration 23 opens as (٩٢٨) and only carries
+# (٩٢٧) and (٩٢٩) inside it (Turkish page 2534); Abu Dawud 163 had no number at all.
+NUMBER_COLUMN = {14086: ("927", "928"), 89277: (None, "163")}
 
 
 def norm(s):
@@ -77,6 +86,15 @@ for mid, book, original, tarqeem in cur.fetchall():
     # drop the first copy, keep the one that stands where the edition's number does, before the text.
     content, n_doubled = DOUBLED.subn(r"\3", original)
     stats["doubled number removed"] += n_doubled
+    if mid in MISSING_LEAD_TAG and f'<رقم_حديث نوع="مطبوع">{MISSING_LEAD_TAG[mid]} </رقم_حديث>' not in content:
+        n = MISSING_LEAD_TAG[mid]
+        tag = f'<رقم_حديث نوع="مطبوع">{n} </رقم_حديث>'
+        harf = re.match(r'(<مسألة><رقم_الفقرة[^>]*/>)(?:(<حديث[^>]*>)?(<رقم_حديث نوع="حرف">[^<]*</رقم_حديث>))?', content)
+        if harf.group(3):                             # after a leading حرف number, as in the other rows
+            content = content[:harf.end()] + tag + content[harf.end():]
+        else:                                         # no حرف before the text
+            content = content[:harf.end(1)] + tag + content[harf.end(1):]
+        stats["missing printed number added"] += 1
     edits = []  # (start, end, replacement)
     subs = []   # (start, value, label)
     for m in TAG.finditer(content):
@@ -100,7 +118,8 @@ for mid, book, original, tarqeem in cur.fetchall():
             edits.append((m.start(), m.end(), f'<رقم_حديث نوع="مطبوع">{value} ({label}) </رقم_حديث>'))
             subs.append((m.start(), value, label))
             stats[f"book {book}: «م» label restored"] += 1
-    if not edits and not n_doubled:
+    fix_column = mid in NUMBER_COLUMN and (tarqeem or None) == NUMBER_COLUMN[mid][0]
+    if not edits and content == original and not fix_column:
         continue
     new = content
     for s, e, r in sorted(edits, reverse=True):
@@ -114,6 +133,9 @@ for mid, book, original, tarqeem in cur.fetchall():
         upd["old_tarqeem"] = tarqeem
         upd["tarqeem_matboa1"] = f"{lead[0][1]} ({lead[0][2]})"
         stats["rows numbered as their «م» item"] += 1
+    if fix_column:
+        upd["old_tarqeem"], upd["tarqeem_matboa1"] = tarqeem, NUMBER_COLUMN[mid][1]
+        stats["number column corrected"] += 1
     updates.append(upd)
 conn.close()
 

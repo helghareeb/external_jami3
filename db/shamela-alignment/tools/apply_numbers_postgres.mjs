@@ -49,7 +49,7 @@ try {
   if (r1.rowCount !== ups.length) throw new Error(`content: ${r1.rowCount} of ${ups.length}`)
   const r2 = await client.query(
     `UPDATE hadith_toc h SET tarqeem_matboa1 = v.t FROM unnest($1::int[], $2::text[], $3::text[]) AS v(main_id, t, old)
-      WHERE h.main_id = v.main_id AND h.book_id BETWEEN 1 AND 5 AND h.tarqeem_matboa1 = v.old`,
+      WHERE h.main_id = v.main_id AND h.book_id BETWEEN 1 AND 5 AND h.tarqeem_matboa1 IS NOT DISTINCT FROM v.old`,
     [withNumber.map(u => u.main_id), withNumber.map(u => u.tarqeem_matboa1), withNumber.map(u => u.old_tarqeem)])
   if (r2.rowCount !== withNumber.length) throw new Error(`tarqeem_matboa1: ${r2.rowCount} of ${withNumber.length}`)
   // read back inside the transaction
