@@ -16,9 +16,11 @@ folder builds what it downloads and the offline build of the site.
   components' `/api/…` calls with the site's own route handlers (`entry-browser.tsx`). It runs before
   `dev` and `build`, after `copy-offline-assets.mjs` copies PGlite into `public/offline/pglite/`.
 - **Downloading.** The data directory is packed as gzip chunks of about 27 MB with a `manifest.json`
-  (`pack-pglite.mjs`), hosted as assets of the GitHub release tagged `offline-pg`. Browsers can't
-  fetch GitHub release downloads directly (no CORS headers), so the app reads them through
-  `/api/offline/files/<name>`; set `OFFLINE_DATA_URL` to serve them from elsewhere. In the browser,
+  (`pack-pglite.mjs`), hosted on Cloudflare R2 at `https://files.hadith.dev/offline/`; the app
+  fetches them there directly (`NEXT_PUBLIC_OFFLINE_DATA_URL`, fixed at build time). The same files
+  are kept on the GitHub release `offline-pg` as a fallback: browsers can't fetch GitHub release
+  downloads directly (no CORS headers), so without that variable the app reads them through
+  `/api/offline/files/<name>` (`OFFLINE_DATA_URL` changes that source). In the browser,
   `public/offline/worker.mjs` fetches the chunks and unpacks them straight into the database's files,
   resuming after a cut connection; `public/offline/pg-worker.mjs` then opens the database.
 - **Offline.** `public/sw.js` keeps `/offline`, the offline build and PGlite, and answers every page
@@ -39,12 +41,12 @@ folder builds what it downloads and the offline build of the site.
    node scripts/offline/pack-pglite.mjs out/pgdata out/offline-db YYYY-MM-DD
    ```
 
-2. On GitHub, open the `offline-pg` release (Releases → `offline-pg` → Edit), remove the old
-   chunk files and `manifest.json`, and upload the new chunks and `manifest.json` from
-   `out/offline-db`.
+2. Upload `out/offline-db` to Cloudflare (`python scripts/r2-upload.py out/offline-db offline/`)
+   and to the GitHub fallback — the full procedure, with checks, is in
+   [docs/publishing.md](../../docs/publishing.md).
 3. Installed apps see the new version on `/offline` and offer an update.
 
-Upload the chunks before the manifest (or all together in one drop): the manifest is what tells
+Upload the chunks before the manifest (`r2-upload.py` does): the manifest is what tells
 apps a new edition exists. The site and the edition must match: deploy a site change that the
 database build depends on (a new index, a new table) together with a new edition.
 
