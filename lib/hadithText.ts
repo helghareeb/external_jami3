@@ -57,6 +57,8 @@ export function renderHadithInlineText(xml: string): string {
       (_full, attrs: string, value: string) => {
         const kind = attrs.match(/\bنوع="([^"]*)"/)?.[1]
         const number = decodeEntities(value).trim()
+        // Muslim (Turkish edition): the narration's number within its كتاب, printed before Abd al-Baqi's: «١ - (٨)»
+        if (kind === 'فرعي' && number) return ` ${number} -`
         if (kind !== 'مطبوع' || !number) return ' '
         // An edition's supplementary item keeps its label as printed: «٩٩ (م)» → (99) (م)
         const sub = number.match(/^(\S+)\s+(\(.+\))$/)
@@ -108,6 +110,18 @@ export function renderHadithTail(tailRaw: string): HadithTail {
  * chapter heading) and <متن_مخفي …/> (a hidden copy), and then ran on to the next </متن> — so the
  * matn could swallow the heading and the whole sanad, and a page title could quote the heading.
  */
+/**
+ * The row's printed number as the edition prints it. Muslim's Turkish edition puts the narration's number
+ * within its كتاب before Abd al-Baqi's — «١ - (٨)» — stored as <رقم_حديث نوع="فرعي"> just before the
+ * <رقم_حديث نوع="مطبوع"> tag; other books print the number alone.
+ */
+export function printedLabel(content: string | null | undefined, number: string | null | undefined): string | null {
+  const n = number?.trim()
+  if (!n) return null
+  const sub = (content || '').match(/<رقم_حديث نوع="فرعي">([^<]*)<\/رقم_حديث>\s*<رقم_حديث نوع="مطبوع">/)?.[1]?.trim()
+  return sub ? `${sub} - (${n})` : n
+}
+
 export const MATN_RE = () => /<متن(?=[\s>])[^>]*>([\s\S]*?)<\/متن>/g
 
 export function splitSanadMatn(xml: string): { sanad: string; matn: string; tail: string; footnotes: { id: string; text: string }[] } {

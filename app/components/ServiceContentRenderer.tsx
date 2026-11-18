@@ -173,6 +173,8 @@ function renderNodes(
       case 'رقم_حديث': {
         const value = nodeText(node).trim()
         if (!value) return null
+        // Muslim: the narration's number within its كتاب, printed before Abd al-Baqi's: «١ - (٨)» → 1 - (8)
+        if (attrs['نوع'] === 'فرعي') return <span key={key} className="ms-1 font-semibold text-green-700">{value} -</span>
         // An edition's supplementary item keeps its label as printed: «٩٩ (م)» → (99) (م)
         const sub = value.match(/^(\S+)\s+(\(.+\))$/)
         return <span key={key} className="mx-1 font-semibold text-green-700">{sub ? `(${sub[1]}) ${sub[2]}` : `(${value})`}</span>
