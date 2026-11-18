@@ -57,7 +57,10 @@ export function renderHadithInlineText(xml: string): string {
       (_full, attrs: string, value: string) => {
         const kind = attrs.match(/\bنوع="([^"]*)"/)?.[1]
         const number = decodeEntities(value).trim()
-        return kind === 'مطبوع' && number ? ` (${number}) ` : ' '
+        if (kind !== 'مطبوع' || !number) return ' '
+        // An edition's supplementary item keeps its label as printed: «٩٩ (م)» → (99) (م)
+        const sub = number.match(/^(\S+)\s+(\(.+\))$/)
+        return sub ? ` (${sub[1]}) ${sub[2]} ` : ` (${number}) `
       })
     .replace(/<رقم_الفقرة\b[^>]*\/?>/g, ' ')
     .replace(/<نه\s*\/>/g, '\n')

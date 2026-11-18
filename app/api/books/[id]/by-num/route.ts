@@ -55,5 +55,19 @@ export async function GET(
   if (rows.length === 1) {
     return NextResponse.json({ found: true, main_id: rows[0].main_id })
   }
-  return NextResponse.json({ found: true, main_id: rows[0].main_id, multiple: rows.map((r: { main_id: number }) => r.main_id) })
+  // Several rows: the printed number of each (e.g. «99» and its supplementary «99 (م)») and its
+  // opening words, so the reader can tell them apart
+  const ids = rows.map((r: { main_id: number }) => r.main_id)
+  const { rows: info } = await pool.query(
+    `SELECT main_id, btrim(tarqeem_matboa1) AS number, left(regexp_replace(coalesce(tarf, ''), '<[^>]+>', '', 'g'), 70) AS opening
+     FROM hadith_toc WHERE main_id = ANY($1::int[])`,
+    [ids]
+  )
+  const byId = new Map(info.map((r: { main_id: number; number: string | null; opening: string }) => [r.main_id, r]))
+  return NextResponse.json({
+    found: true,
+    main_id: ids[0],
+    multiple: ids,
+    items: ids.map((id: number) => ({ main_id: id, number: byId.get(id)?.number ?? null, opening: byId.get(id)?.opening ?? '' })),
+  })
 }
