@@ -8,7 +8,7 @@
 .hadith-breadcrumb-heading svg { align-self: flex-start; margin-top: .1rem; }
 .hadith-source-index a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .hadith-source-identity { display: grid; gap: .5rem; padding-bottom: .65rem; }
-.hadith-source-title { font-family: 'ThmanyahSerifText', serif; font-size: clamp(25px, 3vw, 32px); font-weight: 700; line-height: 1.6; color: var(--color-primary); }
+.hadith-source-title { font-family: 'HonorificGlyphs', 'ThmanyahSerifText', serif; font-size: clamp(25px, 3vw, 32px); font-weight: 700; line-height: 1.6; color: var(--color-primary); }
 .hadith-source-label, .hadith-source-index dt { display: flex; align-items: center; gap: .5rem; color: color-mix(in srgb, var(--color-accent-gold) 35%, var(--color-primary)); font-size: 0.875rem; line-height: 1.7; }
 .hadith-source-index svg { flex-shrink: 0; }
 .hadith-source-author > p:last-child { font-size: 1rem; line-height: 1.8; margin-top: .25rem; }
@@ -190,11 +190,34 @@
   font-display: swap;
 }
 
+/* ── Honorific ligatures (﵁ ﵂ ﵄ ﵇ ﵎ ﷾ ﷿ …) ──
+   The referenced editions print honorifics as single Unicode characters. Thmanyah and the system Arabic
+   fonts have no glyph for most of them (they render as blank space), so these code points — and only
+   these — come from SIL's Scheherazade New, served unmodified from SIL's release (OFL 1.1, licence in
+   /fonts/scheherazade-new/OFL.txt). ﷺ (U+FDFA) and ﷽ (U+FDFD) stay with Thmanyah, which draws them.
+   The unicode-range means the file is only downloaded by pages that contain one of these characters. */
+@font-face {
+  font-family: 'HonorificGlyphs';
+  src: url('/fonts/scheherazade-new/ScheherazadeNew-Regular.woff2') format('woff2');
+  font-weight: 100 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+FD40-FD4F, U+FDFB, U+FDFE-FDFF;
+}
+@font-face {
+  font-family: 'HonorificGlyphs';
+  src: url('/fonts/scheherazade-new/ScheherazadeNew-Bold.woff2') format('woff2');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+FD40-FD4F, U+FDFB, U+FDFE-FDFF;
+}
+
 /* ── Tailwind v4 theme tokens ── */
 @theme {
-  --font-sans: 'ThmanyahSans', 'Arial', sans-serif;
-  --font-serif: 'ThmanyahSerifText', 'Traditional Arabic', serif;
-  --font-display: 'ThmanyahSerifDisplay', 'Traditional Arabic', serif;
+  --font-sans: 'HonorificGlyphs', 'ThmanyahSans', 'Arial', sans-serif;
+  --font-serif: 'HonorificGlyphs', 'ThmanyahSerifText', 'Traditional Arabic', serif;
+  --font-display: 'HonorificGlyphs', 'ThmanyahSerifDisplay', 'Traditional Arabic', serif;
 
   /* ─────────── Light palette — warm paper / scholarly book page ─────────── */
   --color-paper: #FAF8F4;          /* light paper page background */
