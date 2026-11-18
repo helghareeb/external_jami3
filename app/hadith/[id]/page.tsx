@@ -192,6 +192,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
           LIMIT 1) as current_companion,
          COUNT(DISTINCT t.hadith_id)::int as total_takhrij
        FROM takhrij t
+       JOIN hadith_toc ht ON ht.main_id = t.hadith_id   -- only narrations still in a book (not hidden)
        WHERE t.group_id IN (SELECT group_id FROM takhrij WHERE hadith_id = $1)
          AND t.hadith_id != $1`,
       [mainId]
@@ -220,7 +221,26 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
     }).catch(() => ({ mutabaatCount: 0, shawahidCount: 0 })),
   ])
 
-  if (!hadithRes.rows[0]) notFound()
+  if (!hadithRes.rows[0]) {
+    // A row taken out of its book because the referenced edition does not have it (hadith_toc_hidden):
+    // the old link says so instead of a blank «not found»
+    const hidden = (await pool.query<{ book_id: number; book_title: string; number: string | null; reason: string | null }>(
+      `SELECT h.book_id, b.title AS book_title, btrim(h.tarqeem_matboa1) AS number, h.hidden_reason AS reason
+       FROM hadith_toc_hidden h JOIN books b ON b.id = h.book_id WHERE h.main_id = $1`, [mainId]
+    ).catch(() => ({ rows: [] as never[] }))).rows[0]
+    if (!hidden) notFound()
+    return (
+      <main dir="rtl" lang="ar" className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="mb-3 text-xl font-bold text-ink">
+          هذا الحديث لم يعد في {hidden.book_title}{hidden.number ? <> (<bdi>{hidden.number}</bdi>)</> : null}
+        </h1>
+        {hidden.reason && <p className="mb-6 leading-loose text-muted">{hidden.reason}</p>}
+        <Link href={`/books/${hidden.book_id}`} className="text-primary underline underline-offset-4">
+          تصفّح {hidden.book_title}
+        </Link>
+      </main>
+    )
+  }
   const h = hadithRes.rows[0]
 
   // Resolve breadcrumb targets from this hadith's own book hierarchy, not title searches.
