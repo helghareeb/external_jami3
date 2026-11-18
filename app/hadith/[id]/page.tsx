@@ -40,7 +40,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const matn = (splitSanadMatn(h.content || '').matn || stripXmlToVerbatim(h.tarf || '')).replace(/\s+/g, ' ').trim()
   const num = h.tarqeem_matboa1?.trim() || h.tarqeem_harf?.trim()
   const source = num ? `${h.book_title} ${num}` : h.book_title
-  const title = matn ? `${source}: «${clip(matn, 60)}»` : source
+  // The editions' text carries its own «…» around the Prophet's words; the title adds one pair itself.
+  const snippet = matn.replace(/[«»]/g, '').replace(/\s+/g, ' ').trim()
+  const title = snippet ? `${source}: «${clip(snippet, 60)}»` : source
 
   let ruling = ''
   const sources = DORAR_SOURCES[Number(h.book_id)]
