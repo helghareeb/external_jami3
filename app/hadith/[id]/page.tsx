@@ -43,7 +43,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const num = h.tarqeem_matboa1?.trim() || h.tarqeem_harf?.trim()
   const source = num ? `${h.book_title} ${num}` : h.book_title
   // The editions' text carries its own «…» around the Prophet's words; the title adds one pair itself.
-  const snippet = matn.replace(/[«»]/g, '').replace(/\s+/g, ' ').trim()
+  // No opening marks («•» items of Muslim's introduction), and no quote at all when nothing but marks
+  // is left (a hadith the edition keeps only in a footnote: its text is the number and «.»)
+  const snippet = matn.replace(/[«»]/g, '').replace(/\s+/g, ' ').trim().replace(/^[^\p{L}]+/u, '')
   const title = snippet ? `${source}: «${clip(snippet, 60)}»` : source
 
   let ruling = ''
