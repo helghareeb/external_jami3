@@ -3,7 +3,9 @@
 // In the installed app: the offer to download the encyclopedia for use without internet, and while
 // it downloads, a small progress pill on every page (tapping it opens /offline with the details).
 // Once the data is on the device, it asks the service worker to refresh its copy of the offline
-// reader, so the reader matches the site after each release.
+// reader, so the reader matches the site after each release, and when a newer edition of the data
+// is published (a different manifest version or checksum) it asks the reader to update — on any
+// page, not only on /offline. «ليس الآن» asks again a day later, until the update is taken.
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { canPrompt, installApp } from './InstallApp'
@@ -14,6 +16,8 @@ import {
 
 const DISMISS_KEY = 'offline-offer-dismissed'
 const DISMISS_DAYS = 14
+const UPDATE_DISMISS_KEY = 'offline-update-dismissed'   // «<version>|<time>»
+const UPDATE_DISMISS_DAYS = 1
 
 const standalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
@@ -23,6 +27,7 @@ export default function OfflineOffer() {
   const pathname = usePathname()
   const [eligible, setEligible] = useState(false)
   const [offer, setOffer] = useState(false)
+  const [update, setUpdate] = useState(false)
   const [manifest, setManifest] = useState<OfflineManifest | null>(null)
 
   useEffect(() => {
@@ -35,6 +40,17 @@ export default function OfflineOffer() {
       if (status?.ready) {
         // Bring the offline build up to date, unless this page itself came from the device
         if (pathname !== '/offline' && !('__OFFLINE_TARGET' in window)) navigator.serviceWorker?.ready.then(r => r.active?.postMessage({ type: 'cache-offline-shell' })).catch(() => {})
+        // A newer edition of the data published since this device downloaded its copy?
+        if (navigator.onLine) fetchOfflineManifest().then(m => {
+          if (!m || !status.manifest) return
+          if (m.version === status.version && (!m.sha256 || m.sha256 === status.manifest.sha256)) return
+          let dismissed = ''
+          try { dismissed = localStorage.getItem(UPDATE_DISMISS_KEY) || '' } catch {}
+          const [v, t] = dismissed.split('|')
+          if (v === m.version && Date.now() - Number(t || 0) < UPDATE_DISMISS_DAYS * 864e5) return
+          setManifest(m)
+          setTimeout(() => setUpdate(true), 2000)
+        })
         return
       }
       let dismissed = 0
@@ -56,6 +72,32 @@ export default function OfflineOffer() {
         <Ring p={p} />
         {s.phase === 'download' ? 'تحميل الجامع' : 'تجهيز البيانات'} {p.toLocaleString('ar-EG')}٪
       </a>
+    )
+  }
+
+  if (update && manifest && s.status?.ready) {
+    const later = () => {
+      setUpdate(false)
+      try { localStorage.setItem(UPDATE_DISMISS_KEY, `${manifest.version}|${Date.now()}`) } catch {}
+    }
+    const go = () => { setUpdate(false); startOfflineDownload() }
+    return (
+      <div role="dialog" aria-label="تحديث بيانات الجامع على جهازك"
+        className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"
+        style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
+        <p className="font-bold">تحديث متاح لنسخة الجامع على جهازك</p>
+        <p className="text-xs opacity-80 leading-relaxed mt-1">
+          صدر إصدار أحدث من البيانات ({manifest.version})، فحدِّث نسختك ليبقى ما تقرؤه دون إنترنت مطابقًا للموقع.
+          {' '}حجم التحديث {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).
+        </p>
+        <div className="flex items-center gap-2 mt-3">
+          <button type="button" onClick={go} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
+            تحديث الآن
+          </button>
+          <a href="/offline" className="text-sm underline underline-offset-2 opacity-90">التفاصيل</a>
+          <button type="button" onClick={later} className="mr-auto text-sm opacity-70 hover:opacity-100">ليس الآن</button>
+        </div>
+      </div>
     )
   }
 
