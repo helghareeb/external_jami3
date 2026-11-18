@@ -266,7 +266,7 @@ export default async function BookPage({
   }
 
   // ── Book overview: show top-level chapters ──
-  const [topChapRes, sampleRes, statsRes, companionsRes, gradeRes] = await Promise.all([
+  const [topChapRes, sampleRes, statsRes, companionsRes] = await Promise.all([
     // Top-level chapters (direct children of root)
     rootId ? pool.query(
       `SELECT main_id, content, chapter_text, section_text, left_value, right_value,
@@ -303,23 +303,6 @@ export default async function BookPage({
        GROUP BY n.id, n.name, n.abb_name
        ORDER BY cnt DESC
        LIMIT 12`,
-      [bookId]
-    ).catch(() => ({ rows: [] })),
-    // Grade/authenticity breakdown for hadiths in this book
-    pool.query(
-      `SELECT
-         CASE
-           WHEN j.say_text ~* 'صحيح' AND j.say_text !~* 'ضعيف|ليس بصحيح' THEN 'صحيح'
-           WHEN j.say_text ~* 'إسناده حسن|حديث حسن|سنده حسن' AND j.say_text !~* 'ضعيف' THEN 'حسن'
-           WHEN j.say_text ~* 'ضعيف|منكر|متروك|موضوع|لا يصح|باطل' THEN 'ضعيف'
-           ELSE 'غير محدد'
-         END AS grade,
-         COUNT(DISTINCT ht.main_id) AS cnt
-       FROM hadith_toc ht
-       LEFT JOIN hadith_judgments j ON j.hadith_id = ht.main_id
-       WHERE ht.book_id = $1 AND ht.is_leaf = true AND ht.is_paragraph = true
-       GROUP BY 1
-       ORDER BY cnt DESC`,
       [bookId]
     ).catch(() => ({ rows: [] })),
   ])
@@ -375,18 +358,6 @@ export default async function BookPage({
     10: 'المتن المركب', 12: 'مختلف الحديث', 14: 'التفسير', 15: 'التراجم',
   }
 
-  // Grade breakdown
-  type GradeRow = { grade: string; cnt: string }
-  const gradeRows = (gradeRes as { rows: GradeRow[] }).rows
-  const gradeCounts = { صحيح: 0, حسن: 0, ضعيف: 0, 'غير محدد': 0 }
-  for (const r of gradeRows) {
-    const g = r.grade as keyof typeof gradeCounts
-    if (g in gradeCounts) gradeCounts[g] = parseInt(r.cnt)
-  }
-  const gradeTotalJudged = gradeCounts['صحيح'] + gradeCounts['حسن'] + gradeCounts['ضعيف'] + gradeCounts['غير محدد']
-  const gradePct = (key: keyof typeof gradeCounts) =>
-    gradeTotalJudged > 0 ? Math.round((gradeCounts[key] / gradeTotalJudged) * 100) : 0
-  const hasGradeData = gradeTotalJudged > 0
 
   return (
     <div dir="rtl" className="min-h-screen bg-amber-50">
@@ -501,82 +472,6 @@ export default async function BookPage({
                   </Link>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Grade / authenticity profile */}
-        {hasGradeData && (
-          <div className="mb-6 bg-white rounded-2xl border border-gray-100 p-5">
-            <h2 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-1 h-4 bg-green-500 rounded-full inline-block"></span>
-              جودة الأسانيد
-            </h2>
-            {/* Stacked bar */}
-            <div className="flex h-4 rounded-full overflow-hidden w-full mb-3">
-              {gradeCounts['صحيح'] > 0 && (
-                <div
-                  className="bg-green-500 h-full transition-all"
-                  style={{ width: `${gradePct('صحيح')}%` }}
-                  title={`صحيح: ${gradeCounts['صحيح'].toLocaleString('ar-EG')}`}
-                />
-              )}
-              {gradeCounts['حسن'] > 0 && (
-                <div
-                  className="bg-amber-400 h-full transition-all"
-                  style={{ width: `${gradePct('حسن')}%` }}
-                  title={`حسن: ${gradeCounts['حسن'].toLocaleString('ar-EG')}`}
-                />
-              )}
-              {gradeCounts['ضعيف'] > 0 && (
-                <div
-                  className="bg-red-400 h-full transition-all"
-                  style={{ width: `${gradePct('ضعيف')}%` }}
-                  title={`ضعيف: ${gradeCounts['ضعيف'].toLocaleString('ar-EG')}`}
-                />
-              )}
-              {gradeCounts['غير محدد'] > 0 && (
-                <div
-                  className="bg-gray-200 h-full flex-1 transition-all"
-                  style={{ width: `${gradePct('غير محدد')}%` }}
-                  title={`غير محدد: ${gradeCounts['غير محدد'].toLocaleString('ar-EG')}`}
-                />
-              )}
-            </div>
-            {/* Legend + counts */}
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
-              {gradeCounts['صحيح'] > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block shrink-0"></span>
-                  <span className="text-gray-600">صحيح</span>
-                  <span className="font-semibold text-green-700">{gradeCounts['صحيح'].toLocaleString('ar-EG')}</span>
-                  <span className="text-gray-400">({gradePct('صحيح')}٪)</span>
-                </div>
-              )}
-              {gradeCounts['حسن'] > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-amber-400 inline-block shrink-0"></span>
-                  <span className="text-gray-600">حسن</span>
-                  <span className="font-semibold text-amber-700">{gradeCounts['حسن'].toLocaleString('ar-EG')}</span>
-                  <span className="text-gray-400">({gradePct('حسن')}٪)</span>
-                </div>
-              )}
-              {gradeCounts['ضعيف'] > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block shrink-0"></span>
-                  <span className="text-gray-600">ضعيف</span>
-                  <span className="font-semibold text-red-700">{gradeCounts['ضعيف'].toLocaleString('ar-EG')}</span>
-                  <span className="text-gray-400">({gradePct('ضعيف')}٪)</span>
-                </div>
-              )}
-              {gradeCounts['غير محدد'] > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-gray-300 inline-block shrink-0"></span>
-                  <span className="text-gray-500">غير محدد</span>
-                  <span className="font-semibold text-gray-500">{gradeCounts['غير محدد'].toLocaleString('ar-EG')}</span>
-                  <span className="text-gray-400">({gradePct('غير محدد')}٪)</span>
-                </div>
-              )}
             </div>
           </div>
         )}
