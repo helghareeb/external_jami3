@@ -6,7 +6,7 @@
 // it offers the download. To open without a connection, the offline app's page, its build
 // (/offline/app/), PostgreSQL's WebAssembly build (/offline/pglite/), scripts, styles and fonts are
 // kept here.
-// Shell revision 2026-11-18 (back/forward/reload bar for the installed app): a changed sw.js
+// Shell revision 2026-11-18b (tabs in the installed app's bar): a changed sw.js
 // reinstalls, which refreshes the kept /offline page and the manifest.
 const SHELL_CACHE = 'aljami-shell-v3'
 const STATIC_CACHE = 'aljami-static-v3'
