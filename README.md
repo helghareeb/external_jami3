@@ -90,11 +90,13 @@ npm run dev            # http://localhost:3000
 
 ### تحميل قاعدة البيانات
 
-نسخة عامة كاملة من قاعدة البيانات متاحة للتحميل من
-[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): الملف `hadith-public-2026-11-19.dump` (نحو 740 ميغابايت، بصيغة `pg_dump`).
+نسخة عامة كاملة من قاعدة البيانات متاحة للتحميل مباشرةً:
+[`hadith-public-2026-11-19.dump`](https://files.hadith.dev/db/hadith-public-2026-11-19.dump) (نحو 740 ميغابايت، بصيغة `pg_dump`).
 فيها الجداول كلها (97 جدولاً)، وجداول المستخدمين والحسابات فارغة. ضع الملف في مجلد `db-backup/` ثم استعده:
 
 ```bash
+curl -L -o db-backup/hadith-public-2026-11-19.dump https://files.hadith.dev/db/hadith-public-2026-11-19.dump
+sha256sum db-backup/hadith-public-2026-11-19.dump   # 722945af88127487d37278754bb7db95a06de6adc6c1160b71e863c24accc6b6
 docker compose up -d
 docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
@@ -180,11 +182,13 @@ npm run dev            # http://localhost:3000
 
 ### Download the database
 
-A full public copy of the database is available from
-[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): `hadith-public-2026-11-19.dump` (about 740 MB, `pg_dump` format). It has all
+A full public copy of the database is available for direct download:
+[`hadith-public-2026-11-19.dump`](https://files.hadith.dev/db/hadith-public-2026-11-19.dump) (about 740 MB, `pg_dump` format). It has all
 97 tables; the user and account tables are empty. Put the file in `db-backup/`, then restore it:
 
 ```bash
+curl -L -o db-backup/hadith-public-2026-11-19.dump https://files.hadith.dev/db/hadith-public-2026-11-19.dump
+sha256sum db-backup/hadith-public-2026-11-19.dump   # 722945af88127487d37278754bb7db95a06de6adc6c1160b71e863c24accc6b6
 docker compose up -d
 docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
