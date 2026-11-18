@@ -1,12 +1,20 @@
-"""Upload a file to the R2 bucket behind files.hadith.dev, in parts (any size — wrangler stops at 300 MiB).
+"""Upload to the R2 bucket behind files.hadith.dev (Cloudflare), in parts — any file size (wrangler stops at
+300 MiB per file). See docs/publishing.md.
 
-Credentials come from .env.r2 at the repo root (git-ignored): R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY —
-an R2 account token with Object Read & Write on hadith-files only. They are never printed.
+Credentials come from .env.r2 at the repo root (git-ignored), never printed:
+  R2_ACCESS_KEY_ID=…
+  R2_SECRET_ACCESS_KEY=…
+(an R2 account API token with Object Read & Write on hadith-files only).
 
-  python scripts/r2-upload.py <local file> <key in the bucket> [content-type] [cache-control]
-  e.g.  python scripts/r2-upload.py db-backup/hadith-public-2026-11-19.dump db/hadith-public-2026-11-19.dump
+  python scripts/r2-upload.py <file> <key>
+      one file, e.g.  db-backup/hadith-public-2026-11-19.dump  db/hadith-public-2026-11-19.dump
+  python scripts/r2-upload.py <folder> <prefix>/
+      every file in the folder under the prefix, e.g.  out/offline-db  offline/
+      — an offline edition: chunks first, manifest.json last (the manifest tells apps a new edition exists).
 
-Needs boto3 (pip install boto3). Verifies the uploaded size afterwards.
+Content types and caching are set from the name: *.gz → application/gzip, cached for a year (the edition's date
+is in the name, so a chunk never changes); manifest.json → no-cache; *.dump → octet-stream, a day.
+Every upload's size is checked against the local file afterwards. Needs boto3 (pip install boto3).
 """
 import os, re, sys
 import boto3
@@ -20,24 +28,50 @@ for line in open(os.path.join(root, ".env.r2"), encoding="utf-8"):
     m = re.match(r"\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$", line)
     if m:
         env[m.group(1)] = m.group(2).strip("\"'")
-src, key = sys.argv[1], sys.argv[2]
-ctype = sys.argv[3] if len(sys.argv) > 3 else "application/octet-stream"
-cache = sys.argv[4] if len(sys.argv) > 4 else "public, max-age=86400"
 
 s3 = boto3.client("s3", endpoint_url=f"https://{ACCOUNT}.r2.cloudflarestorage.com",
                   aws_access_key_id=env["R2_ACCESS_KEY_ID"], aws_secret_access_key=env["R2_SECRET_ACCESS_KEY"],
                   region_name="auto")
-size = os.path.getsize(src)
-done = [0]
-def progress(n):
-    done[0] += n
-    pct = done[0] * 100 // size
-    if pct % 10 == 0 and pct != progress.last:
-        progress.last = pct
-        print(f"  {pct}%", flush=True)
-progress.last = -1
-s3.upload_file(src, BUCKET, key, ExtraArgs={"ContentType": ctype, "CacheControl": cache},
-               Config=TransferConfig(multipart_threshold=64 * 1024**2, multipart_chunksize=64 * 1024**2, max_concurrency=4),
-               Callback=progress)
-remote = s3.head_object(Bucket=BUCKET, Key=key)["ContentLength"]
-print(f"uploaded {key}: {remote:,} bytes (local {size:,}) {'OK' if remote == size else 'SIZE MISMATCH'}")
+CONFIG = TransferConfig(multipart_threshold=64 * 1024**2, multipart_chunksize=64 * 1024**2, max_concurrency=4)
+
+
+def headers(name):
+    if name == "manifest.json":
+        return "application/json; charset=utf-8", "no-cache"
+    if name.endswith(".gz"):
+        return "application/gzip", "public, max-age=31536000, immutable"
+    if name.endswith(".json"):
+        return "application/json; charset=utf-8", "public, max-age=3600"
+    return "application/octet-stream", "public, max-age=86400"
+
+
+def upload(src, key, show_progress):
+    size = os.path.getsize(src)
+    ctype, cache = headers(os.path.basename(src))
+    state = {"done": 0, "last": -1}
+
+    def progress(n):
+        state["done"] += n
+        pct = state["done"] * 100 // max(size, 1)
+        if show_progress and pct % 10 == 0 and pct != state["last"]:
+            state["last"] = pct
+            print(f"  {pct}%", flush=True)
+
+    s3.upload_file(src, BUCKET, key, ExtraArgs={"ContentType": ctype, "CacheControl": cache}, Config=CONFIG,
+                   Callback=progress)
+    remote = s3.head_object(Bucket=BUCKET, Key=key)["ContentLength"]
+    if remote != size:
+        sys.exit(f"SIZE MISMATCH {key}: uploaded {remote:,}, local {size:,}")
+    print(f"ok {key} ({size:,} bytes)", flush=True)
+
+
+src, key = sys.argv[1], sys.argv[2]
+if os.path.isdir(src):
+    prefix = key.rstrip("/") + "/"
+    names = sorted(n for n in os.listdir(src) if os.path.isfile(os.path.join(src, n)))
+    names.sort(key=lambda n: n == "manifest.json")  # manifest last
+    for n in names:
+        upload(os.path.join(src, n), prefix + n, False)
+    print(f"uploaded {len(names)} files to {prefix}")
+else:
+    upload(src, key, True)

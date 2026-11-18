@@ -19,6 +19,10 @@
 | `DB_QUERY_TIMEOUT_MS` | no | `35000` | Client query timeout |
 | `DB_IDLE_TIMEOUT_MS` | no | `30000` | Idle client eviction |
 | `DB_MAX_USES` | no | `10000` | Recycle long-lived clients |
+| `NEXT_PUBLIC_OFFLINE_DATA_URL` | no | — | Where installed apps download the offline edition (`https://files.hadith.dev/offline`); build-time, redeploy after changing |
+| `OFFLINE_DATA_URL` | no | GitHub release `offline-pg` | Source for the `/api/offline/files` fallback proxy |
+
+Publishing the database dump and the offline edition (Cloudflare R2, `files.hadith.dev`) and the DNS setup are in [publishing.md](publishing.md).
 
 The zero minimum connection setting avoids paying for idle PostgreSQL clients. Keep the pool small unless traffic measurements show that more connections improve latency without exhausting the database.
 
