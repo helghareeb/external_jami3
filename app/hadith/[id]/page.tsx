@@ -37,7 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!h) return {}
 
   const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).replace(/\s+\S*$/, '') + '…' : s)
-  const matn = (splitSanadMatn(h.content || '').matn || stripXmlToVerbatim(h.tarf || '')).replace(/\s+/g, ' ').trim()
+  // Number tags out first: a row without <متن> (an athar) falls back to its whole text, numbers and all
+  const forTitle = (h.content || '').replace(/<رقم_حديث[^>]*>[^<]*<\/رقم_حديث>/g, '')
+  const matn = (splitSanadMatn(forTitle).matn || stripXmlToVerbatim(h.tarf || '')).replace(/\s+/g, ' ').trim()
   const num = h.tarqeem_matboa1?.trim() || h.tarqeem_harf?.trim()
   const source = num ? `${h.book_title} ${num}` : h.book_title
   // The editions' text carries its own «…» around the Prophet's words; the title adds one pair itself.
