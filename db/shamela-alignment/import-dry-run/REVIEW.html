@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مراجعة الاستيراد التجريبي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root { color-scheme: light dark; --bg:#fbfaf7; --fg:#1f1d1a; --muted:#6b655c; --line:#e3ddd2; --head:#f1ece3; --accent:#7a5c1e; }
+@media (prefers-color-scheme: dark) { :root { --bg:#17161a; --fg:#ece9e3; --muted:#c9c2b6; --line:#34313a; --head:#232129; --accent:#d8b46a; } }
+table.removed { table-layout: fixed; }
+html { background: var(--bg); }
+body { margin: 0 auto; max-width: 1100px; padding: 24px 16px 64px; color: var(--fg); background: var(--bg);
+  /* Scheherazade New draws the honorific ligatures (﵁ ﵄ ﷿ ﵎ ﷾ …) that Amiri and the system fonts lack */
+  font-family: "Amiri", "Scheherazade New", "Noto Naskh Arabic", "Traditional Arabic", "Segoe UI", Tahoma, sans-serif; font-size: 19px; line-height: 1.9; }
+h1 { font-size: 1.6em; line-height: 1.4; margin: 0 0 .4em; }
+h3 { font-size: 1.05em; margin: 1.2em 0 .3em; }
+h2 { font-size: 1.25em; margin: 1.8em 0 .5em; padding-bottom: .2em; border-bottom: 2px solid var(--line); color: var(--accent); }
+p { margin: .4em 0 .9em; }
+table { border-collapse: collapse; width: 100%; margin: .4em 0 1em; font-size: .95em; }
+th, td { border: 1px solid var(--line); padding: .35em .6em; text-align: start; vertical-align: top; }
+th { background: var(--head); font-weight: 700; }
+td.num { white-space: nowrap; font-family: "Segoe UI", Tahoma, sans-serif; font-size: .9em; }
+td.ar { font-size: 1.05em; }
+.ctx { color: var(--muted); }
+.ok { color: #2e7d4f; font-weight: 700; font-size: .85em; margin-top: .3em; }
+.bad { color: #b03a3a; font-weight: 700; font-size: .85em; margin-top: .3em; }
+@media (prefers-color-scheme: dark) { .ok { color: #7fd6a2; } .bad { color: #ff8a80; } }
+td.old { text-decoration: line-through; text-decoration-color: rgba(180, 60, 60, .55); }
+.gap { color: #b03a3a; font-weight: 700; white-space: nowrap; }
+@media (prefers-color-scheme: dark) { .gap { color: #ff8a80; } }
+mark { background: #f3dc9a; color: #1f1d1a; padding: 0 .15em; border-radius: 3px; }
+@media (prefers-color-scheme: dark) { mark { background: #6b5520; color: #f6efe0; } }
+.scroll { overflow-x: auto; }
+details { margin: .4em 0; border: 1px solid var(--line); border-radius: 8px; padding: .2em .8em; }
+summary { cursor: pointer; font-weight: 700; padding: .3em 0; }
+a { color: var(--accent); }
+.note { color: var(--muted); font-size: .9em; }
+</style>
+</head>
+<body>
+<h1>مراجعة الاستيراد التجريبي من الطبعات التي تعتمدها الشاملة</h1>
+<p>نُسخت نصوص الكتب الخمسة (السند والمتن وكلام المصنِّف) من الطبعات التي تربط بينها الشاملة، بحروفها وحركاتها وعلامات ترقيمها، وأُبقيت وسوم الرواة والمتن والغريب كما هي. جرى ذلك على <strong>نسخة محلية</strong> من قاعدة البيانات فقط، ولم يُمسّ الموقع المنشور.</p>
+<h2>نتيجة التحقق الآلي</h2>
+<table><thead><tr><th>الفحص</th><th>العدد</th></tr></thead><tbody>
+<tr><td>صفوف نصُّها كلُّه مطابق للطبعة حرفًا بحرف مع الحركات (الترجمة والسند والمتن وكلام المصنِّف)</td><td class='num'><bdi dir="ltr">30,512</bdi></td></tr>
+<tr><td>صفوف ما زال نصُّها يختلف عن الطبعة</td><td class='num'><bdi dir="ltr">0</bdi></td></tr>
+<tr><td>صفوف حُفظت فيها الوسوم كلها (الرواة، المتن، الطرف، الغريب…)</td><td class='num'><bdi dir="ltr">30,512</bdi></td></tr>
+<tr><td>صفوف سليمة البنية (XML)</td><td class='num'><bdi dir="ltr">30,512</bdi></td></tr>
+<tr><td>وسم راوٍ صار فارغًا لأن الطبعة ليس فيها ذلك الاسم</td><td class='num'><bdi dir="ltr">122</bdi></td></tr>
+</tbody></table>
+<h2>الأرقام لكل كتاب</h2>
+<div class="scroll"><table><thead><tr><th>البند</th><th>صحيح البخاري — الطبعة السلطانية</th><th>صحيح مسلم — الطبعة التركية</th><th>سنن أبي داود — ط دهلي مع عون المعبود</th><th>جامع الترمذي — ت بشار عواد</th><th>سنن النسائي — الطبعة المصرية</th></tr></thead><tbody>
+<tr><td>صفوف أُعيد بناؤها من الطبعة</td><td class='num'><bdi dir="ltr">7,409</bdi></td><td class='num'><bdi dir="ltr">7,662</bdi></td><td class='num'><bdi dir="ltr">5,260</bdi></td><td class='num'><bdi dir="ltr">4,402</bdi></td><td class='num'><bdi dir="ltr">5,779</bdi></td></tr>
+<tr><td>تراجم أبواب أُعيد بناؤها من الطبعة</td><td class='num'><bdi dir="ltr">3,812</bdi></td><td class='num'><bdi dir="ltr">1,325</bdi></td><td class='num'><bdi dir="ltr">1,881</bdi></td><td class='num'><bdi dir="ltr">2,315</bdi></td><td class='num'><bdi dir="ltr">2,527</bdi></td></tr>
+<tr><td>تراجم قديمة أُزيلت (لا ترجمة في الطبعة هناك)</td><td class='num'><bdi dir="ltr">3</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td><td class='num'><bdi dir="ltr">2</bdi></td></tr>
+<tr><td>حواشٍ كُتبت من الطبعة</td><td class='num'><bdi dir="ltr">63</bdi></td><td class='num'><bdi dir="ltr">174</bdi></td><td class='num'><bdi dir="ltr">80</bdi></td><td class='num'><bdi dir="ltr">44</bdi></td><td class='num'><bdi dir="ltr">192</bdi></td></tr>
+<tr><td>علامات صفحات المطبوع</td><td class='num'><bdi dir="ltr">1,534</bdi></td><td class='num'><bdi dir="ltr">1,535</bdi></td><td class='num'><bdi dir="ltr">1,409</bdi></td><td class='num'><bdi dir="ltr">2,460</bdi></td><td class='num'><bdi dir="ltr">1,728</bdi></td></tr>
+<tr><td>صفوف تضمّ أكثر من حديث من الطبعة</td><td class='num'><bdi dir="ltr">191</bdi></td><td class='num'><bdi dir="ltr">33</bdi></td><td class='num'><bdi dir="ltr">44</bdi></td><td class='num'><bdi dir="ltr">30</bdi></td><td class='num'><bdi dir="ltr">5</bdi></td></tr>
+<tr><td>حديث واحد في الطبعة موزّع على صفّين عندنا</td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">2</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td></tr>
+<tr><td>أحاديث في الطبعة ليس لها صفّ عندنا (كُتبت كاملةً أمام الصف التالي)</td><td class='num'><bdi dir="ltr">17</bdi></td><td class='num'><bdi dir="ltr">4</bdi></td><td class='num'><bdi dir="ltr">7</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td></tr>
+<tr><td>صفحات عناوين في الطبعة تخصّ صفوف الأبواب (المرحلة الثانية)</td><td class='num'><bdi dir="ltr">20</bdi></td><td class='num'><bdi dir="ltr">26</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td><td class='num'><bdi dir="ltr">6</bdi></td><td class='num'><bdi dir="ltr">2</bdi></td></tr>
+<tr><td>صفوف تُركت دون تغيير (المطابقة غير مؤكدة)</td><td class='num'><bdi dir="ltr">1</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td></tr>
+<tr><td>صفوف عندنا ليس لها نظير في الطبعة (تُركت)</td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">3</bdi></td><td class='num'><bdi dir="ltr">0</bdi></td><td class='num'><bdi dir="ltr">2</bdi></td><td class='num'><bdi dir="ltr">1</bdi></td></tr>
+</tbody></table></div>
+<h2>١. عبارات من نصّنا القديم أُزيلت (8)، أو استُبدل بها لفظ الطبعة (4)</h2>
+<p><strong>نصّنا القديم لم يَبقَ منه شيء في هذه الصفوف:</strong> النسخة الجديدة فيها هي نصُّ الطبعة حرفًا بحرف مع الحركات، وقد تحقّق الفحص الآلي من ذلك في كل صفّ من صفوف هذا القسم (<span class="ok">✓ مطابق للطبعة</span>). وإنما يعرض هذا القسم أين كان لفظنا القديم يخالف الطبعة، وماذا صار في موضعه:</p><ul><li><strong>أ.</strong> عبارات قديمة ليس في الطبعة ما يقابلها، فأُزيلت ولم يحلّ محلَّها شيء.</li><li><strong>ب.</strong> عبارات قديمة في الطبعة ما يقابلها بلفظ قريب (يختلف بكلمة أو حرف أو ترتيب)، فاستُبدل بها لفظ الطبعة كما هو؛ والكلمات المظلَّلة هي مواضع الاختلاف التي صارت الآن على لفظ الطبعة.</li></ul><p>أمّا ما وُجد في موضع آخر من الطبعة (عند حديث مجاور) فلم يُحذف، بل انتقل إلى موضعه فيها.</p>
+<p>العمود الأخير يعرض النسخة الجديدة كما تظهر في الموقع المحلي (المنفذ <bdi dir="ltr">3100</bdi>) في الموضع نفسه: العلامة <span class="gap">⟨حُذف هنا⟩</span> مكانُ النص المحذوف، وما ظُلِّل هو لفظ الطبعة الذي حلّ محلّه إن وُجد.</p>
+<h3>أ. أُزيلت: ليس في الطبعة ما يقابلها (<bdi dir="ltr">8</bdi>)</h3>
+<table class="removed"><colgroup><col style="width:13%"><col style="width:7%"><col style="width:7%"><col style="width:35%"><col style="width:38%"></colgroup><thead><tr><th>الكتاب</th><th>رقمه في الطبعة</th><th>الصف</th><th>لفظنا القديم (أُزيل)</th><th>النسخة الجديدة في الموضع نفسه (نص الطبعة)</th></tr></thead><tbody>
+<tr><td>صحيح البخاري — الطبعة السلطانية</td><td class='num'><bdi dir="ltr">344</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/600">600</a></bdi></td><td class='ar old'>قَالَ أَبُو عَبْدِ اللهِ : صَبَأَ: خَرَجَ مِنْ دِينٍ إِلَى غَيْرِهِ . وَقَالَ أَبُو الْعَالِيَةِ : الصَّابِئِينَ فِرْقَةٌ مِنْ أَهْلِ الْكِتَابِ يَقْرَءُونَ الزَّبُورَ</td><td class='ar'><span class='ctx'>لَكُمْ فِي الْإِسْلَامِ؟ فَأَطَاعُوهَا فَدَخَلُوا فِي الْإِسْلَامِ».</span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'></span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح البخاري — الطبعة السلطانية</td><td class='num'><bdi dir="ltr">2011</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/3260">3260</a></bdi></td><td class='ar old'>اللهُ عَلَيْهِ وَسَلَّمَ صَلَّى</td><td class='ar'><span class='ctx'>بْنِ الزُّبَيْرِ، عَنْ عَائِشَةَ ﵂، زَوْجِ النَّبِيِّ</span> <mark>ﷺ:</mark> <span class='ctx'>«أَنَّ رَسُولَ اللهِ ﷺ صَلَّى، وَذَلِكَ فِي</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح البخاري — الطبعة السلطانية</td><td class='num'><bdi dir="ltr">2238</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/3617">3617</a></bdi></td><td class='ar old'>فَأَمَرَ بِمَحَاجِمِهِ فَكُسِرَتْ</td><td class='ar'><span class='ctx'>أَبِي جُحَيْفَةَ قَالَ: «رَأَيْتُ أَبِي اشْتَرَى حَجَّامًا،</span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'>فَسَأَلْتُهُ عَنْ ذَلِكَ، قَالَ: إِنَّ رَسُولَ اللهِ</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح البخاري — الطبعة السلطانية</td><td class='num'><bdi dir="ltr">2855</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/4631">4631</a></bdi></td><td class='ar old'>قَالَ أَبُو عَبْدِ اللهِ : وَقَالَ بَعْضُهُمُ : اللُّخَيْفُ</td><td class='ar'><span class='ctx'>ﷺ فِي حَائِطِنَا فَرَسٌ يُقَالُ لَهُ اللُّحَيْفُ».</span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'></span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح مسلم — الطبعة التركية</td><td class='num'><bdi dir="ltr">359</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/12506">12506</a></bdi></td><td class='ar old'>اللهُ عَلَيْهِ وَسَلَّمَ وَقَالَ : صَلَّى</td><td class='ar'><span class='ctx'>شَهِدَ ذَلِكَ مِنَ النَّبِيِّ ﷺ وَقَالَ: صَلَّى،</span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'>وَلَمْ يَقُلْ: بِالنَّاسِ .</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح مسلم — الطبعة التركية</td><td class='num'><bdi dir="ltr">1078</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/14517">14517</a></bdi></td><td class='ar old'>بَابُ الدُّعَاءِ لِمَنْ أَتَى بِصَدَقَةٍ</td><td class='ar'><span class='ctx'></span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'>حَدَّثَنَا يَحْيَى بْنُ يَحْيَى، وَأَبُو بَكْرِ بْنُ</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>سنن النسائي — الطبعة المصرية</td><td class='num'><bdi dir="ltr">1178</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/65651">65651</a></bdi></td><td class='ar old'>اللهُ عَلَيْهِ وَسَلَّمَ صَلَّى</td><td class='ar'><span class='ctx'>عَنِ ابْنِ بُحَيْنَةَ «أَنَّ النَّبِيَّ ﷺ صَلَّى،</span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'>فَقَامَ فِي الرَّكْعَتَيْنِ، فَسَبَّحُوا فَمَضَى، فَلَمَّا فَرَغَ</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>سنن النسائي — الطبعة المصرية</td><td class='num'><bdi dir="ltr">1825</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/66611">66611</a></bdi></td><td class='ar old'>أَخْبَرَنَا أَبُو عَبْدِ الرَّحْمَنِ : مُحَمَّدُ بْنُ إِبْرَاهِيمَ وَالِدُ أَبِي بَكْرِ بْنِ أَبِي شَيْبَةَ</td><td class='ar'><span class='ctx'></span> <span class='gap'>⟨حُذف هنا⟩</span> <span class='ctx'>أَخْبَرَنَا مُحَمَّدُ بْنُ الْمُثَنَّى ، عَنْ يَحْيَى،</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+</tbody></table>
+<h3>ب. استُبدل بها لفظ الطبعة (<bdi dir="ltr">4</bdi>)</h3>
+<table class="removed"><colgroup><col style="width:13%"><col style="width:7%"><col style="width:7%"><col style="width:35%"><col style="width:38%"></colgroup><thead><tr><th>الكتاب</th><th>رقمه في الطبعة</th><th>الصف</th><th>لفظنا القديم (أُزيل)</th><th>النسخة الجديدة في الموضع نفسه (نص الطبعة)</th></tr></thead><tbody>
+<tr><td>صحيح مسلم — الطبعة التركية</td><td class='num'><bdi dir="ltr">490</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/12856">12856</a></bdi></td><td class='ar old'>وَنُهِيَ أَنْ يَكُفَّ شَعَرَهُ أَوْ ثِيَابَهُ . هَذَا حَدِيثُ يَحْيَى . وَقَالَ أَبُو الرَّبِيعِ : عَلَى سَبْعَةِ أَعْظُمٍ</td><td class='ar'><span class='ctx'>عَلَى سَبْعَةِ أَعْظُمٍ</span> - وَنُهِيَ أَنْ يَكُفَّ شَعَْرَهُ <mark>وَثِيَابَهُ</mark> -: <mark>الْكَفَّيْنِ،</mark> <mark>وَالرُّكْبَتَيْنِ،</mark> <mark>وَالْقَدَمَيْنِ،</mark> <mark>وَالْجَبْهَةِ</mark> . <span class='ctx'></span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح مسلم — الطبعة التركية</td><td class='num'><bdi dir="ltr">2153</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/18276">18276</a></bdi></td><td class='ar old'>حَدَّثَنَا مُحَمَّدُ بْنُ بَشَّارٍ ، حَدَّثَنَا أَبُو عَاصِمٍ . ( ح ) وَحَدَّثَنَا حُسَيْنُ بْنُ حُرَيْثٍ ، حَدَّثَنَا النَّضْرُ بْنُ شُمَيْلٍ ، قَالَا جَمِيعًا: حَدَّثَنَا ابْنُ جُرَيْجٍ حَدَّثَنَا عَطَاءٌ ، عَنْ عُبَيْدِ بْنِ عُمَيْرٍ: أَنَّ أَبَا مُوسَى</td><td class='ar'><span class='ctx'></span> حَدَّثَنَا مُحَمَّدُ بْنُ بَشَّارٍ ، حَدَّثَنَا أَبُو عَاصِمٍ . (ح) وَحَدَّثَنَا حُسَيْنُ بْنُ حُرَيْثٍ ، حَدَّثَنَا النَّضْرُ <mark>يَعْنِي</mark> <mark>ابْنَ</mark> شُمَيْلٍ ، قَالَا جَمِيعًا: حَدَّثَنَا ابْنُ جُرَيْجٍ <span class='ctx'>بِهَذَا الْإِسْنَادِ نَحْوَهُ،</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>صحيح مسلم — الطبعة التركية</td><td class='num'><bdi dir="ltr">2567</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/19401">19401</a></bdi></td><td class='ar old'>قَالَ الشَّيْخُ أَبُو أَحْمَدَ : أَخْبَرَنِي أَبُو بَكْرٍ مُحَمَّدُ بْنُ زَنْجُويَةَ الْقُشَيْرِيُّ ، حَدَّثَنَا عَبْدُ الْأَعْلَى بْنُ حَمَّادٍ ، حَدَّثَنَا حَمَّادُ بْنُ سَلَمَةَ عَنْ ثَابِتٍ ، عَنْ أَبِي رَافِعٍ ، عَنْ أَبِي هُرَيْرَةَ</td><td class='ar'><span class='ctx'></span> قَالَ الشَّيْخُ أَبُو أَحْمَدَ : أَخْبَرَنِي أَبُو بَكْرٍ مُحَمَّدُ بْنُ زَنْجُويَةَ الْقُشَيْرِيُّ ، حَدَّثَنَا عَبْدُ الْأَعْلَى بْنُ حَمَّادٍ ، حَدَّثَنَا حَمَّادُ بْنُ سَلَمَةَ <span class='ctx'>بِهَذَا الْإِسْنَادِ نَحْوَهُ.</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+<tr><td>سنن أبي داود — ط دهلي مع عون المعبود</td><td class='num'><bdi dir="ltr">—</bdi></td><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/89277">89277</a></bdi></td><td class='ar old'>مَا كُنْتُ أَرَى بَاطِنَ الْقَدَمَيْنِ إِلَّا أَحَقَّ بِالْغَسْلِ حَتَّى رَأَيْتُ رَسُولَ اللهِ صَلَّى اللهُ عَلَيْهِ وَسَلَّمَ يَمْسَحُ عَلَى ظَهْرِ خُفَّيْهِ . وَرَوَاهُ وَكِيعٌ ، عَنِ الْأَعْمَشِ بِإِسْنَادِهِ ، قَالَ</td><td class='ar'><span class='ctx'>بْنُ عَبْدِ الْعَزِيزِ</span> ، <mark>عَنِ</mark> <mark>الْأَعْمَشِ</mark> <mark>بِإِسْنَادِهِ</mark> <mark>بِهَذَا</mark> <mark>الْحَدِيثِ،</mark> <mark>قَالَ:</mark> «مَا كُنْتُ أَرَى بَاطِنَ الْقَدَمَيْنِ إِلَّا أَحَقَّ بِالْغَسْلِ حَتَّى رَأَيْتُ رَسُولَ اللهِ <mark>ﷺ</mark> يَمْسَحُ <mark>عَلَى</mark> <mark>ظَهْرِ</mark> <mark>خُفَّيْهِ».</mark> <mark>حَدَّثَنَا</mark> <mark>مُحَمَّدُ</mark> <mark>بْنُ</mark> <mark>الْعَلَاءِ</mark> <mark>،</mark> <mark>حَدَّثَنَا</mark> <mark>حَفْصُ</mark> <mark>بْنُ</mark> <mark>غِيَاثٍ</mark> <mark>،</mark> <mark>عَنِ</mark> <mark>الْأَعْمَشِ</mark> <mark>،</mark> <mark>بِهَذَا</mark> <mark>الْحَدِيثِ،</mark> <mark>قَالَ:</mark> <mark>«لَوْ</mark> <mark>كَانَ</mark> <mark>الدِّينُ</mark> <mark>بِالرَّأْيِ،</mark> <mark>لَكَانَ</mark> <mark>بَاطِنُ</mark> <mark>الْقَدَمَيْنِ</mark> <mark>أَحَقَّ</mark> <mark>بِالْمَسْحِ</mark> <mark>مِنْ</mark> <mark>ظَاهِرِهِمَا،</mark> <mark>وَقَدْ</mark> <mark>مَسَحَ</mark> <mark>النَّبِيُّ</mark> <mark>ﷺ</mark> عَلَى ظَهْرِ خُفَّيْهِ» • وَرَوَاهُ وَكِيعٌ، عَنِ الْأَعْمَشِ بِإِسْنَادِهِ، <mark>قَالَ:</mark> <mark>«كُنْتُ</mark> <mark>أَرَى</mark> <mark>أَنَّ</mark> <mark>بَاطِنَ</mark> <mark>الْقَدَمَيْنِ</mark> <mark>أَحَقُّ</mark> <mark>بِالْمَسْحِ</mark> <mark>مِنْ</mark> <mark>ظَاهِرِهِمَا،</mark> <mark>حَتَّى</mark> <mark>رَأَيْتُ</mark> <mark>رَسُولَ</mark> <mark>اللهِ</mark> <mark>ﷺ</mark> <mark>يَمْسَحُ</mark> <mark>ظَاهِرَهُمَا».</mark> <mark>قَالَ</mark> <mark>وَكِيعٌ:</mark> <mark>يَعْنِي</mark> <mark>الْخُفَّيْنِ.</mark> • <mark>وَرَوَاهُ</mark> <mark>عِيسَى</mark> <mark>بْنُ</mark> <mark>يُونُسَ،</mark> <mark>عَنِ</mark> <mark>الْأَعْمَشِ،</mark> <mark>كَمَا</mark> <mark>رَوَاهُ</mark> <mark>وَكِيعٌ</mark> <mark>•</mark> <mark>وَرَوَاهُ</mark> <mark>أَبُو</mark> <mark>السَّوْدَاءِ،</mark> <mark>عَنِ</mark> <mark>ابْنِ</mark> <mark>عَبْدِ</mark> <mark>خَيْرٍ،</mark> <mark>عَنْ</mark> <mark>أَبِيهِ،</mark> قَالَ: <span class='ctx'>رَأَيْتُ عَلِيًّا تَوَضَّأَ</span><div class='ok'>✓ مطابق للطبعة</div></td></tr>
+</tbody></table>
+<h2>٢. صفوف ما زال نصّها يختلف عن الطبعة (0)</h2>
+<p class="ok">✓ لا يوجد: كل صفّ أُعيد بناؤه نصُّه كلُّه — الترجمة والسند والمتن وكلام المصنِّف — هو نصُّ الطبعة حرفًا بحرف مع الحركات. لم يُرقَّع شيء من نصّنا القديم: حُذف كلّه وكُتب نصّ الطبعة مكانه، وأُعيدت الوسوم (الرواة، الطرف، الغريب، المتن) إلى كلمات الطبعة حيث تطابقت، ليبقى الربط يعمل.</p>
+<h2>٣. تراجم قديمة أُزيلت لأن الطبعة لا تطبع ترجمةً في ذلك الموضع (6)</h2>
+<p>الترجمة التي أمام كل حديث صارت ما تطبعه الطبعة بين الحديث السابق وهذا الحديث، كاملةً بلفظها، ولو اختلف لفظنا القديم عنها. وفي هذه المواضع وحدها لا تطبع الطبعة شيئًا بين الحديثين، فأُزيل نصّ ترجمتنا القديمة.</p>
+<details open><summary>صحيح البخاري — الطبعة السلطانية (<bdi dir="ltr">3</bdi>)</summary><table><thead><tr><th>الصف</th><th>الترجمة القديمة (أُزيلت)</th></tr></thead><tbody>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/395">395</a></bdi></td><td class='ar old'>بَابٌ : يُهَرِيقُ الْمَاءَ عَلَى الْبَوْلِ.</td></tr>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/1083">1083</a></bdi></td><td class='ar old'>بَابُ وُجُوبِ صَلَاةِ الْجَمَاعَةِ وَقَالَ الْحَسَنُ إِنْ مَنَعَتْهُ أُمُّهُ عَنِ الْعِشَاءِ فِي الْجَمَاعَةِ شَفَقَةً لَمْ يُطِعْهَا</td></tr>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/1699">1699</a></bdi></td><td class='ar old'>بَابُ رَفْعِ النَّاسِ أَيْدِيَهُمْ مَعَ الْإِمَامِ فِي الِاسْتِسْقَاءِ قَالَ</td></tr>
+</tbody></table></details>
+<details open><summary>جامع الترمذي — ت بشار عواد (<bdi dir="ltr">1</bdi>)</summary><table><thead><tr><th>الصف</th><th>الترجمة القديمة (أُزيلت)</th></tr></thead><tbody>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/101195">101195</a></bdi></td><td class='ar old'>وَقَدْ رَوَى غَيْرُ وَاحِدٍ هَذَا الْحَدِيثَ عَنْ يَحْيَى بْنِ سَعِيدٍ ، عَنْ سَعِيدِ بْنِ الْمُسَيِّبِ ، عَنْ سَعْدِ بْنِ أَبِي وَقَّاصٍ قَالَ:</td></tr>
+</tbody></table></details>
+<details open><summary>سنن النسائي — الطبعة المصرية (<bdi dir="ltr">2</bdi>)</summary><table><thead><tr><th>الصف</th><th>الترجمة القديمة (أُزيلت)</th></tr></thead><tbody>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/64244">64244</a></bdi></td><td class='ar old'>195 م / 196 - بَابُ : التَّيَمُّمِ فِي الْحَضَرِ</td></tr>
+<tr><td class='num'><bdi dir="ltr"><a href="http://localhost:3100/hadith/70692">70692</a></bdi></td><td class='ar old'>8 ، 9 / 000 - بَابٌ : ذِكْرُ الِاخْتِلَافِ عَلَى عِكْرِمَةَ فِي ذَلِكَ</td></tr>
+</tbody></table></details>
+<h2>٤. ما بقي لمرحلة ثانية</h2>
+<ul><li>أحاديث في الطبعة ليس لها صف عندنا (كالمكرَّر «م»): نصُّها الآن مكتوبٌ كاملًا برقمه أمام الصف التالي حتى لا يسقط شيء من الطبعة، وتحتاج صفوفًا مستقلة مع روابط أسانيدها.</li><li>صفوف تضمّ أكثر من حديث من الطبعة: تظهر الآن صحيحة وأرقامها في مواضعها، لكنها لم تُقسَّم إلى صفوف مستقلة.</li><li>صفوف تُركت دون تغيير لأن مطابقتها غير مؤكدة: تُراجَع يدويًّا.</li><li>صفوف عناوين الكتب والأبواب (غير صفوف الأحاديث): لم يُعَد بناؤها بعد.</li><li>النسخ المخفية من المتن (<bdi dir="ltr">متن_مخفي</bdi>) التي تعتمد عليها مقارنة الروايات: ما زالت بلفظ قديم.</li><li>الترقيم الفرعي في صحيح مسلم داخل كل كتاب، مثل «٤٥ - (١٠٠٠)»: لم يُعرض بعد.</li></ul>
+<p class="note">الروابط تفتح الموقع المحلي على <bdi dir="ltr">http://localhost:3100</bdi> (يعمل على جهازك فقط ما دامت النسخة التجريبية مشغَّلة).</p>
+</body>
+</html>
