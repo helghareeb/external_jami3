@@ -172,7 +172,10 @@ function renderNodes(
         )
       case 'رقم_حديث': {
         const value = nodeText(node).trim()
-        return value ? <span key={key} className="mx-1 font-semibold text-green-700">({value})</span> : null
+        if (!value) return null
+        // An edition's supplementary item keeps its label as printed: «٩٩ (م)» → (99) (م)
+        const sub = value.match(/^(\S+)\s+(\(.+\))$/)
+        return <span key={key} className="mx-1 font-semibold text-green-700">{sub ? `(${sub[1]}) ${sub[2]}` : `(${value})`}</span>
       }
       case 'هامش': {
         const id = attrs.ID || attrs.id

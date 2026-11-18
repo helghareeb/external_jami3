@@ -5,6 +5,7 @@ import Link from '@/app/components/Link'
 import { useNumbering } from '@/lib/numberingContext'
 
 interface Book { id: number; title: string; takhrij_author: string | null; takhrij_death: number | null }
+interface Match { main_id: number; number: string | null; opening: string }
 
 export default function FindByNumberClient({ books }: { books: Book[] }) {
   const { pref } = useNumbering()
@@ -12,7 +13,7 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
   const [num, setNum] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [results, setResults] = useState<number[] | null>(null)
+  const [results, setResults] = useState<Match[] | null>(null)
   const router = useRouter()
 
   async function handleSearch(e: React.FormEvent) {
@@ -35,7 +36,7 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
         return
       }
       if (data.multiple && data.multiple.length > 1) {
-        setResults(data.multiple)
+        setResults(data.items ?? data.multiple.map((id: number) => ({ main_id: id, number: null, opening: '' })))
       } else {
         router.push(`/hadith/${data.main_id}`)
       }
@@ -118,13 +119,14 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
             وُجد أكثر من نتيجة للرقم "{num}" في هذا الكتاب:
           </p>
           <div className="flex flex-wrap gap-2">
-            {results.map(id => (
+            {results.map(r => (
               <Link
-                key={id}
-                href={`/hadith/${id}`}
+                key={r.main_id}
+                href={`/hadith/${r.main_id}`}
                 className="text-sm text-green-800 bg-white border border-green-200 px-3 py-1.5 rounded-lg hover:border-green-400 hover:shadow-sm transition-all"
               >
-                حديث #{id}
+                <bdi className="font-semibold">{r.number || `#${r.main_id}`}</bdi>
+                {r.opening && <span className="text-gray-600"> — {r.opening}…</span>}
               </Link>
             ))}
           </div>
