@@ -82,57 +82,6 @@ export default async function Home() {
         <img src="/assets/theme-ornament.svg" alt="" width="240" height="24" />
       </div>
 
-      {/* Stats banner */}
-      <div className="home-stats">
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
-          {[
-            { num: hadiths.toLocaleString('ar-EG'), label: 'حديث' },
-            { num: narrators.toLocaleString('ar-EG'), label: 'راوٍ' },
-            { num: books.toString(), label: 'كتاب' },
-            { num: topics.toLocaleString('ar-EG'), label: 'موضوع' },
-            { num: bio.toLocaleString('ar-EG'), label: 'راوٍ مترجَم' },
-            { num: criticism.toLocaleString('ar-EG'), label: 'راوٍ مجروح/معدَّل' },
-          ].map((s, i) => (
-            <div key={i} className="home-stat ui-card">
-              <UiIcon name={(['book-open', 'narrator', 'books', 'topics', 'bio', 'scale'] as IconName[])[i]} size={24} className="mx-auto mb-2 text-accent-gold" />
-              <div className="text-2xl font-bold text-ink font-display">{s.num}</div>
-              <div className="text-xs text-muted mt-0.5 font-sans">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Hadith examples & link to dedicated videos section */}
-      <section className="max-w-6xl mx-auto px-4 pt-8 sm:pt-10">
-        <div className="ui-card rounded-2xl p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-            <div>
-              <h2 className="text-base font-bold text-green-900 font-display">جرّب هذه الأحاديث</h2>
-              <p className="text-sm text-muted font-sans">أحاديث تكشف ما تتيحه صفحة الحديث من إسناد وتخريج وشروح</p>
-            </div>
-            <Link
-              href="/videos"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F3D2E] text-[#FFFDF7] hover:bg-[#16523E] px-4 py-2 text-xs sm:text-sm font-sans font-semibold transition-colors shrink-0"
-            >
-              <span>أفلام الموسوعة</span>
-              <span className="text-[#E6C77A]">←</span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {HADITH_EXAMPLES.map(ex => (
-              <Link key={ex.id} href={`/hadith/${ex.id}`}
-                className="block bg-[#FFFDF7] border border-[#D9C9A8] rounded-xl px-4 py-2 hover:border-[#C9A96B] hover:shadow-sm transition-all group">
-                <span className="block text-sm font-semibold text-green-900 group-hover:text-green-700 font-display leading-relaxed">{ex.title}</span>
-                <span className="flex items-center justify-between gap-2 text-xs font-sans">
-                  <span className="text-gray-500">{ex.source}</span>
-                  <span className="text-amber-800">{ex.shows}</span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Main Nav Cards */}
       <div className="home-sections max-w-6xl mx-auto px-4 py-8 sm:py-10">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-10">
@@ -208,7 +157,56 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Research Tools */}
+        {/* Stats banner (moved below) */}
+        <div className="home-stats mt-8">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 text-center">
+            {[
+              { num: hadiths.toLocaleString('ar-EG'), label: 'حديث' },
+              { num: narrators.toLocaleString('ar-EG'), label: 'راوٍ' },
+              { num: books.toString(), label: 'كتاب' },
+              { num: topics.toLocaleString('ar-EG'), label: 'موضوع' },
+              { num: bio.toLocaleString('ar-EG'), label: 'راوٍ مترجَم' },
+              { num: criticism.toLocaleString('ar-EG'), label: 'راوٍ مجروح/معدَّل' },
+            ].map((s, i) => (
+              <div key={i} className="home-stat ui-card">
+                <UiIcon name={(['book-open', 'narrator', 'books', 'topics', 'bio', 'scale'] as IconName[])[i]} size={24} className="mx-auto mb-2 text-accent-gold" />
+                <div className="text-2xl font-bold text-ink font-display">{s.num}</div>
+                <div className="text-xs text-muted mt-0.5 font-sans">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Hadith examples & link to dedicated videos section */}
+        <div className="ui-card rounded-2xl p-5 sm:p-6 mt-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <div>
+              <h2 className="text-base font-bold text-green-900 font-display">جرّب هذه الأحاديث</h2>
+              <p className="text-sm text-muted font-sans">أحاديث تكشف ما تتيحه صفحة الحديث من إسناد وتخريج وشروح</p>
+            </div>
+            <Link
+              href="/videos"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F3D2E] text-[#FFFDF7] hover:bg-[#16523E] px-4 py-2 text-xs sm:text-sm font-sans font-semibold transition-colors shrink-0"
+            >
+              <span>أفلام الموسوعة</span>
+              <span className="text-[#E6C77A]">←</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {HADITH_EXAMPLES.map(ex => (
+              <Link key={ex.id} href={`/hadith/${ex.id}`}
+                className="block bg-[#FFFDF7] border border-[#D9C9A8] rounded-xl px-4 py-2 hover:border-[#C9A96B] hover:shadow-sm transition-all group">
+                <span className="block text-sm font-semibold text-green-900 group-hover:text-green-700 font-display leading-relaxed">{ex.title}</span>
+                <span className="flex items-center justify-between gap-2 text-xs font-sans">
+                  <span className="text-gray-500">{ex.source}</span>
+                  <span className="text-amber-800">{ex.shows}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Research Tools — commented out of homepage
         <img src="/assets/theme-ornament.svg" alt="" aria-hidden="true" width="240" height="24" className="home-section-divider" />
         <div className="home-research-tools ui-card p-5 sm:p-6 mt-4">
           <h2 className="text-base font-bold text-green-900 mb-4">أدوات بحثية متخصصة</h2>
@@ -719,6 +717,7 @@ export default async function Home() {
             </Link>
           </div>
         </div>
+        */}
 
         {/* Research tips */}
         <div className="mt-6 bg-amber-50 rounded-2xl border border-amber-100 p-6">
