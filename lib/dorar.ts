@@ -61,7 +61,7 @@ export function dorarKey(xml: string | null | undefined): string | null {
 // text search is given.
 export function matnSearchWords(xml: string | null | undefined): string[] {
   if (!xml) return []
-  return [...xml.matchAll(/<متن[^>]*>([\s\S]*?)<\/متن>/g)].map(m => m[1]).join(' ')
+  return [...xml.matchAll(/<متن(?=[\s>])[^>]*>([\s\S]*?)<\/متن>/g)].map(m => m[1]).join(' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/[ً-ْٰـ]/g, '')
     .replace(/صل[يى] الله عليه وسلم/g, ' ')

@@ -16,7 +16,7 @@ import DorarJudgment from '@/app/components/DorarJudgment'
 import type { DorarRuling } from '@/app/components/DorarJudgment'
 import EnglishTranslation, { type EnglishTranslationData } from '@/app/components/EnglishTranslation'
 import { citeItems } from '@/lib/citation'
-import { DORAR_SOURCES, dorarKey, matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
+import { DORAR_SOURCES, matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
 import {
   parseSanadNarratorSegments,
   sanadSegmentsHaveNarrators,
@@ -28,8 +28,8 @@ import {
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const mainId = parseInt((await params).id)
   if (Number.isNaN(mainId)) return {}
-  const res = await pool.query<{ book_id: number; book_title: string; tarf: string | null; content: string | null; tarqeem_matboa1: string | null; tarqeem_harf: string | null }>(
-    `SELECT h.book_id, b.title AS book_title, h.tarf, h.content, h.tarqeem_matboa1, h.tarqeem_harf
+  const res = await pool.query<{ book_id: number; book_title: string; tarf: string | null; content: string | null; tarqeem_matboa1: string | null; tarqeem_harf: string | null; dorar_key: string | null }>(
+    `SELECT h.book_id, b.title AS book_title, h.tarf, h.content, h.tarqeem_matboa1, h.tarqeem_harf, h.dorar_key
      FROM hadith_toc h JOIN books b ON b.id = h.book_id WHERE h.main_id = $1`,
     [mainId]
   ).catch(() => ({ rows: [] as never[] }))
@@ -46,7 +46,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   let ruling = ''
   const sources = DORAR_SOURCES[Number(h.book_id)]
-  const key = sources ? dorarKey(h.content) : null
+  // The key the rulings were filed under (hadith_toc.dorar_key), not the number in today's text: the
+  // printed numbers moved to the referenced editions, and a ruling belongs to its hadith, not its number.
+  const key = sources ? h.dorar_key : null
   if (sources && key) {
     const r = await pool.query<{ hukm: string | null; muhaddith: string | null }>(
       `SELECT hukm, muhaddith FROM dorar_rulings WHERE book_id = $1 AND number = $2 ORDER BY dorar_source_id NULLS LAST LIMIT 1`,
@@ -433,7 +435,8 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
 
   // Dorar's rulings, fetched offline by scripts/dorar-crawl.mjs (table absent until its first run)
   const dorarSources = DORAR_SOURCES[Number(h.book_id)]
-  const dorarNumber = dorarSources ? dorarKey(h.content as string) : null
+  // The key the rulings were filed under (see generateMetadata): stable when the printed number changes
+  const dorarNumber = dorarSources ? ((h.dorar_key as string | null) ?? null) : null
   let dorarRulings: DorarRuling[] = []
   if (dorarSources && dorarNumber) {
     const rulingsRes = await pool.query<DorarRuling & { dorar_source_id: number | null }>(

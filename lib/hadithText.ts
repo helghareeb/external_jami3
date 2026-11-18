@@ -100,6 +100,13 @@ export function renderHadithTail(tailRaw: string): HadithTail {
   return { text: renderHadithInlineText(raw), footnotes }
 }
 
+/**
+ * The <متن>…</متن> elements, and only those: «<متن[^>]*>» also matched <متن_معلق> (a quotation in a
+ * chapter heading) and <متن_مخفي …/> (a hidden copy), and then ran on to the next </متن> — so the
+ * matn could swallow the heading and the whole sanad, and a page title could quote the heading.
+ */
+export const MATN_RE = () => /<متن(?=[\s>])[^>]*>([\s\S]*?)<\/متن>/g
+
 export function splitSanadMatn(xml: string): { sanad: string; matn: string; tail: string; footnotes: { id: string; text: string }[] } {
   const raw = xml || ''
   const matnStart = raw.search(/<متن[\s>]/)
@@ -107,7 +114,7 @@ export function splitSanadMatn(xml: string): { sanad: string; matn: string; tail
     return { sanad: '', matn: renderHadithInlineText(raw), tail: '', footnotes: [] }
   }
 
-  const matnRe = /<متن[^>]*>([\s\S]*?)<\/متن>/g
+  const matnRe = MATN_RE()
   const matnParts: string[] = []
   let match: RegExpExecArray | null
   let lastEnd = -1
@@ -130,7 +137,7 @@ export function splitSanadMatn(xml: string): { sanad: string; matn: string; tail
 export function extractMatnForComparison(xml: string): string {
   if (!xml) return ''
 
-  const matnRe = /<متن[^>]*>([\s\S]*?)<\/متن>/g
+  const matnRe = MATN_RE()
   const parts: string[] = []
   let match: RegExpExecArray | null
   while ((match = matnRe.exec(xml)) !== null) parts.push(match[1])
@@ -141,7 +148,7 @@ export function extractMatnForComparison(xml: string): string {
   } else {
     const matnStart = xml.search(/<متن[\s>]/)
     if (matnStart !== -1) {
-      const afterOpen = xml.slice(matnStart).replace(/^<متن[^>]*>/, '')
+      const afterOpen = xml.slice(matnStart).replace(/^<متن(?=[\s>])[^>]*>/, '')
       const closeIdx = afterOpen.indexOf('</متن>')
       src = closeIdx >= 0 ? afterOpen.slice(0, closeIdx) : afterOpen
     }
