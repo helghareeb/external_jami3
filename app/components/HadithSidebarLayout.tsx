@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from '@/app/components/Link'
 import ReportPrintButton from './ReportPrintButton'
 import SaveHadith from './SaveHadith'
@@ -14,7 +15,7 @@ import MatnVariants from './MatnVariants'
 import { displayNarratorName } from '@/lib/narratorName'
 import { SECOND_EDITION } from '@/lib/printEditions'
 import MatnSimilaritySection from './MatnSimilaritySection'
-import PrevNextNav from './PrevNextNav'
+import PrevNextNav, { type AdjacentHadithInfo } from './PrevNextNav'
 import GhareebMatn from './GhareebMatn'
 import SanadNarrators from './SanadNarrators'
 import CollapsibleSection from './CollapsibleSection'
@@ -130,6 +131,8 @@ export interface HadithSidebarLayoutProps {
   dorarSlot?: ReactNode
   // The English translation (Sunnah.com), under the matn
   translationSlot?: ReactNode
+  prevHadith?: AdjacentHadithInfo | null
+  nextHadith?: AdjacentHadithInfo | null
 }
 
 const ISNAD_TYPE_MAP: Record<number, { label: string; cls: string; desc: string }> = {
@@ -152,9 +155,35 @@ export default function HadithSidebarLayout({
   dorarSlot,
   relatedTopicsSlot,
   translationSlot,
+  prevHadith,
+  nextHadith,
 }: HadithSidebarLayoutProps) {
+  const router = useRouter()
   const [showTashkeel, setShowTashkeel] = useState(true)
   const [matnSize, setMatnSize] = useState(MATN_SIZE_DEFAULT)
+
+  const prevId = prevHadith !== undefined ? (prevHadith?.main_id ?? null) : (h.prev_paragraph_id > 0 ? h.prev_paragraph_id : null)
+  const nextId = nextHadith !== undefined ? (nextHadith?.main_id ?? null) : (h.next_paragraph_id > 0 ? h.next_paragraph_id : null)
+
+  // Keyboard shortcuts for RTL reading order: ArrowLeft -> next hadith, ArrowRight -> previous hadith
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+        return
+      }
+      if (e.key === 'ArrowLeft' && nextId !== null) {
+        e.preventDefault()
+        router.push(`/hadith/${nextId}`)
+      } else if (e.key === 'ArrowRight' && prevId !== null) {
+        e.preventDefault()
+        router.push(`/hadith/${prevId}`)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [prevId, nextId, router])
 
   // The first printed number and the edition it belongs to. Books with no named edition
   // (البيهقي، المستدرك) have no printed numbering at all — their «المطبوع» is Harf's
@@ -266,6 +295,15 @@ export default function HadithSidebarLayout({
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 min-w-0 px-3 sm:px-4 pt-2 pb-8">
         <TrackHadithView hadithId={hadithId} hadithTitle={h.book_title + (h.tarqeem_harf ? ` رقم ${h.tarqeem_harf}` : '')} />
+
+        <PrevNextNav
+          prevId={prevId}
+          nextId={nextId}
+          prevHadith={prevHadith}
+          nextHadith={nextHadith}
+          currentBookId={h.book_id}
+          variant="top"
+        />
 
         {/* Source card first: book, chapter, part/page, numbering, then the text */}
         <header id="source-details" className="hadith-source-index scroll-mt-header" dir="rtl">
@@ -729,8 +767,12 @@ export default function HadithSidebarLayout({
         </div>
 
         <PrevNextNav
-          prevId={h.prev_paragraph_id || null}
-          nextId={h.next_paragraph_id || null}
+          prevId={prevId}
+          nextId={nextId}
+          prevHadith={prevHadith}
+          nextHadith={nextHadith}
+          currentBookId={h.book_id}
+          variant="bottom"
         />
 
       </div>

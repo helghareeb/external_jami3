@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import Link from '@/app/components/Link'
 import HadithSidebarLayout from '@/app/components/HadithSidebarLayout'
 import type { NarratorInChain, Chain, CriticismGroup } from '@/app/components/HadithSidebarLayout'
+import type { AdjacentHadithInfo } from '@/app/components/PrevNextNav'
 import TakhrijSection, { TakhrijBadges } from '@/app/components/TakhrijSection'
 import MatnGroupSection from '@/app/components/MatnGroupSection'
 import { sectionBadgeSlots } from '@/app/components/SectionBadges'
@@ -242,6 +243,51 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
     )
   }
   const h = hadithRes.rows[0]
+
+  // Fetch metadata for previous/next hadiths in the reading chain
+  const prevIdNum = Number(h.prev_paragraph_id)
+  const nextIdNum = Number(h.next_paragraph_id)
+  const adjacentIds = [prevIdNum, nextIdNum].filter(
+    (adjId) => Number.isFinite(adjId) && adjId > 0
+  )
+  const adjacentMap = new Map<number, AdjacentHadithInfo>()
+  if (adjacentIds.length > 0) {
+    const adjRes = await pool.query<{
+      main_id: number
+      book_id: number
+      book_title: string
+      content: string | null
+      tarqeem_matboa1: string | null
+      tarqeem_harf: string | null
+    }>(
+      `SELECT h.main_id, h.book_id, b.title AS book_title, h.content, h.tarqeem_matboa1, h.tarqeem_harf
+       FROM hadith_toc h
+       JOIN books b ON b.id = h.book_id
+       WHERE h.main_id = ANY($1::int[])`,
+      [adjacentIds]
+    ).catch(() => ({ rows: [] as Array<{
+      main_id: number
+      book_id: number
+      book_title: string
+      content: string | null
+      tarqeem_matboa1: string | null
+      tarqeem_harf: string | null
+    }> }))
+    for (const row of adjRes.rows) {
+      adjacentMap.set(Number(row.main_id), {
+        main_id: Number(row.main_id),
+        book_id: Number(row.book_id),
+        book_title: row.book_title,
+        number: printedLabel(row.content, row.tarqeem_matboa1) || row.tarqeem_harf?.trim() || null,
+      })
+    }
+  }
+  const prevHadith = Number.isFinite(prevIdNum) && prevIdNum > 0
+    ? (adjacentMap.get(prevIdNum) ?? null)
+    : null
+  const nextHadith = Number.isFinite(nextIdNum) && nextIdNum > 0
+    ? (adjacentMap.get(nextIdNum) ?? null)
+    : null
 
   // Resolve breadcrumb targets from this hadith's own book hierarchy, not title searches.
   const ancestorsRes = await pool.query<{ main_id: number; content: string | null }>(
@@ -529,6 +575,8 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
         dorarSlot={dorarRulings.length > 0 && dorarSources
           ? <DorarJudgment rulings={dorarRulings} searchUrl={dorarSearchUrl(matnSearchWords(h.content as string), dorarSources)} />
           : undefined}
+        prevHadith={prevHadith}
+        nextHadith={nextHadith}
       />
     </>
   )
