@@ -91,12 +91,12 @@ npm run dev            # http://localhost:3000
 ### تحميل قاعدة البيانات
 
 نسخة عامة كاملة من قاعدة البيانات متاحة للتحميل من
-[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): الملف `hadith-public-2026-10-16.dump` (نحو 700 ميغابايت، بصيغة `pg_dump`).
-فيها الجداول كلها (95 جدولاً)، وجداول المستخدمين والحسابات فارغة. ضع الملف في مجلد `db-backup/` ثم استعده:
+[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): الملف `hadith-public-2026-11-19.dump` (نحو 740 ميغابايت، بصيغة `pg_dump`).
+فيها الجداول كلها (97 جدولاً)، وجداول المستخدمين والحسابات فارغة. ضع الملف في مجلد `db-backup/` ثم استعده:
 
 ```bash
 docker compose up -d
-docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-10-16.dump
+docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
 
 المتغير الوحيد المطلوب هو `DATABASE_URL`. لا تضعه أبداً في الكود: ملفات `.env` مستثناة من git.
@@ -181,12 +181,12 @@ npm run dev            # http://localhost:3000
 ### Download the database
 
 A full public copy of the database is available from
-[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): `hadith-public-2026-10-16.dump` (about 700 MB, `pg_dump` format). It has all
-95 tables; the user and account tables are empty. Put the file in `db-backup/`, then restore it:
+[Google Drive](https://drive.google.com/drive/folders/1aHqRlalSQHiZ9h92NJWNlBL0s4Bycydg?usp=drive_link): `hadith-public-2026-11-19.dump` (about 740 MB, `pg_dump` format). It has all
+97 tables; the user and account tables are empty. Put the file in `db-backup/`, then restore it:
 
 ```bash
 docker compose up -d
-docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-10-16.dump
+docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
 
 `DATABASE_URL` is the only required setting. Never put it in the code: `.env` files are gitignored,
