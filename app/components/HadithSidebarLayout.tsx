@@ -24,7 +24,7 @@ import HadithServiceSection, { activeServiceSections } from './HadithServiceSect
 import type { HadithServiceKey } from './HadithServiceSection'
 import { stripTashkeel } from '@/lib/ghareeb'
 import HadithHighlights from './HadithHighlights'
-import { splitSanadMatn, stripXmlToVerbatim, extractTarf } from '@/lib/hadithText'
+import { splitSanadMatn, stripXmlToVerbatim, extractTarf, printedLabel } from '@/lib/hadithText'
 import { findTarfRange, withTarf } from '@/lib/tarf'
 import type { SanadNarratorPreview, SanadSegment } from '@/lib/sanadNarrators'
 import type { ReactNode } from 'react'
@@ -160,7 +160,7 @@ export default function HadithSidebarLayout({
   // (البيهقي، المستدرك) have no printed numbering at all — their «المطبوع» is Harf's
   // number repeated — so it is dropped rather than credited to an edition.
   const edition1 = h.print1_edition?.trim() && h.print1_edition.trim() !== '0' ? h.print1_edition.trim() : null
-  const matboa1 = edition1 ? h.tarqeem_matboa1?.trim() || null : null
+  const matboa1 = edition1 ? printedLabel(h.content, h.tarqeem_matboa1) : null
 
   // Track the sticky header height so the TOC sidebar + section anchors sit flush under it
   useEffect(() => {

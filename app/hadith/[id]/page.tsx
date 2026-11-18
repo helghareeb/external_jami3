@@ -2,7 +2,7 @@ import { findDisplayedPivot } from '@/lib/isnadPivot'
 export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import pool from '@/lib/db'
-import { splitSanadMatn, stripXmlToVerbatim } from '@/lib/hadithText'
+import { splitSanadMatn, stripXmlToVerbatim, printedLabel } from '@/lib/hadithText'
 import { openGraph, twitter } from '@/lib/siteMeta'
 import { notFound } from 'next/navigation'
 import Link from '@/app/components/Link'
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // Number tags out first: a row without <متن> (an athar) falls back to its whole text, numbers and all
   const forTitle = (h.content || '').replace(/<رقم_حديث[^>]*>[^<]*<\/رقم_حديث>/g, '')
   const matn = (splitSanadMatn(forTitle).matn || stripXmlToVerbatim(h.tarf || '')).replace(/\s+/g, ' ').trim()
-  const num = h.tarqeem_matboa1?.trim() || h.tarqeem_harf?.trim()
+  const num = printedLabel(h.content, h.tarqeem_matboa1) || h.tarqeem_harf?.trim()
   const source = num ? `${h.book_title} ${num}` : h.book_title
   // The editions' text carries its own «…» around the Prophet's words; the title adds one pair itself.
   // No opening marks («•» items of Muslim's introduction), and no quote at all when nothing but marks

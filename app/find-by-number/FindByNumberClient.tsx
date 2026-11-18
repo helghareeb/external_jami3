@@ -5,7 +5,7 @@ import Link from '@/app/components/Link'
 import { useNumbering } from '@/lib/numberingContext'
 
 interface Book { id: number; title: string; takhrij_author: string | null; takhrij_death: number | null }
-interface Match { main_id: number; number: string | null; opening: string }
+interface Match { main_id: number; number: string | null; opening: string; previous?: boolean }
 
 export default function FindByNumberClient({ books }: { books: Book[] }) {
   const { pref } = useNumbering()
@@ -35,7 +35,8 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
         setError(`لم يُعثر على الحديث رقم "${trimmedNum}" في هذا الكتاب`)
         return
       }
-      if (data.multiple && data.multiple.length > 1) {
+      // several rows, or a number only the previous print had: let the reader see which is which
+      if ((data.multiple && data.multiple.length > 1) || data.previous_only) {
         setResults(data.items ?? data.multiple.map((id: number) => ({ main_id: id, number: null, opening: '' })))
       } else {
         router.push(`/hadith/${data.main_id}`)
@@ -116,7 +117,9 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
       {results && results.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <p className="text-sm font-medium text-amber-800 mb-3">
-            وُجد أكثر من نتيجة للرقم "{num}" في هذا الكتاب:
+            {results.every(r => r.previous)
+              ? <>الرقم «<bdi>{num}</bdi>» من ترقيم الطبعة السابقة لهذا الكتاب، ورقمه في الطبعة الحالية:</>
+              : <>وُجد أكثر من نتيجة للرقم «<bdi>{num}</bdi>» في هذا الكتاب:</>}
           </p>
           <div className="flex flex-wrap gap-2">
             {results.map(r => (
@@ -126,6 +129,7 @@ export default function FindByNumberClient({ books }: { books: Book[] }) {
                 className="text-sm text-green-800 bg-white border border-green-200 px-3 py-1.5 rounded-lg hover:border-green-400 hover:shadow-sm transition-all"
               >
                 <bdi className="font-semibold">{r.number || `#${r.main_id}`}</bdi>
+                {r.previous && <span className="text-xs text-amber-700"> (رقمه {num} في الطبعة السابقة)</span>}
                 {r.opening && <span className="text-gray-600"> — {r.opening}…</span>}
               </Link>
             ))}
