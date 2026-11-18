@@ -25,6 +25,7 @@ const CATEGORIES: NavCategory[] = [
       { href: '/matn-compare', label: 'المتون المجمعة' },
       { href: '/lexicon', label: 'تعريفات' },
       { href: '/saved', label: 'مجالات المستخدم' },
+      { href: '/videos', label: 'أفلام الموسوعة' },
       // { href: '/hadiths/chapters', label: 'فهرس الأبواب', isNew: true },
       // { href: '/chapters', label: 'بحث الأبواب', isNew: true },
       // { href: '/find-by-number', label: 'رقم الحديث', isNew: true },
@@ -95,11 +96,14 @@ const CATEGORIES: NavCategory[] = [
     ],
   },
   {
-    id: 'lexicons',
-    label: 'معاجم',
+    id: 'lexicons-indexes',
+    label: 'معاجم وفهارس',
     links: [
       { href: '/lexicon', label: 'معجم غريب الحديث' },
       { href: '/lexicon/places', label: 'معجم الأماكن والبلدان' },
+      { href: '/indexes/quran', label: 'فهرس الآيات' },
+      { href: '/indexes/names', label: 'فهرس الأعلام' },
+      { href: '/indexes/poetry', label: 'فهرس الشعر' },
       // { href: '/quran', label: 'القرآن الكريم', isNew: true },
       // { href: '/sections', label: 'تصنيف الكتب', isNew: true },
     ],
@@ -168,38 +172,23 @@ const CATEGORIES: NavCategory[] = [
       // { href: '/hadiths/unique-to-book', label: 'انفرادات الكتب', isNew: true },
     ],
   },
-  {
-    id: 'indexes',
-    label: 'فهارس',
-    links: [
-      { href: '/indexes/quran', label: 'فهرس الآيات' },
-      { href: '/indexes/names', label: 'فهرس الأعلام' },
-      { href: '/indexes/poetry', label: 'فهرس الشعر' },
-    ],
-  },
-  {
-    id: 'search',
-    label: 'بحث',
-    links: [
-      { href: '/search', label: 'بحث نصي' },
-      { href: '/asaneed/builder', label: 'البحث بواسطة السند', isNew: true },
-      { href: '/hadiths/advanced-research', label: 'بحث متعدد' },
-    ],
-  },
-  {
-    id: 'services',
-    label: 'خدمات',
-    links: [
-      { href: '/narrators/stats', label: 'احصائيات الرواة' },
-      { href: '/hadiths/tarf-stats', label: 'إحصائيات الأطراف' },
-      { href: '/stats', label: 'احصائيات الأحاديث' },
-      { href: '/takhrij', label: 'تخريج الأبحاث العلمية' },
-      // { href: '/books/uniqueness', label: 'تفرد الكتب', isNew: true },
-      // { href: '/books/exclusive-hadiths', label: 'منفردات الكتب', isNew: true },
-      // { href: '/books/timeline', label: 'تاريخية التدوين', isNew: true },
-      // { href: '/books/transmission-genealogy', label: 'تداخل الكتب', isNew: true },
-    ],
-  },
+  // Merged into «معاجم وفهارس» above.
+  // Removed «بحث» menu because SearchSubHeader is always visible below the header.
+  // Commented out «خدمات» — needs review before going live.
+  // {
+  //   id: 'services',
+  //   label: 'خدمات',
+  //   links: [
+  //     { href: '/narrators/stats', label: 'احصائيات الرواة' },
+  //     { href: '/hadiths/tarf-stats', label: 'إحصائيات الأطراف' },
+  //     { href: '/stats', label: 'احصائيات الأحاديث' },
+  //     { href: '/takhrij', label: 'تخريج الأبحاث العلمية' },
+  //     // { href: '/books/uniqueness', label: 'تفرد الكتب', isNew: true },
+  //     // { href: '/books/exclusive-hadiths', label: 'منفردات الكتب', isNew: true },
+  //     // { href: '/books/timeline', label: 'تاريخية التدوين', isNew: true },
+  //     // { href: '/books/transmission-genealogy', label: 'تداخل الكتب', isNew: true },
+  //   ],
+  // },
   {
     id: 'developers',
     label: 'للمطورين',
@@ -300,21 +289,21 @@ export default function NavHeader() {
     <nav ref={navRef} aria-label="التنقل الرئيسي" className="site-nav theme-texture relative z-30 bg-[#0F3D2E] text-[#F8F1E4] font-sans border-b border-[#C9A96B]/40" dir="rtl">
       <div className="max-w-[1440px] mx-auto flex items-center gap-1.5 px-3 sm:px-6 lg:px-7 py-1.5 min-w-0">
         {/* The landscape logo on a cream plate: its green text needs a light ground on the green bar */}
-        <a href="/" aria-label="الجامع — موسوعة الحديث النبوي" className="shrink-0 ml-1 sm:ml-2 min-[960px]:max-[1150px]:ml-0.5 xl:ml-3 rounded-lg bg-[#FFFDF7] px-2.5 min-[960px]:max-[1150px]:px-2 py-1 ring-1 ring-[#C9A96B]/50 transition-shadow hover:ring-[#C9A96B]">
-          <img src="/assets/brand/al-jami-horizontal.png" alt="الجامع — موسوعة الحديث النبوي" width={104} height={40} className="block h-9 sm:h-10 min-[960px]:max-[1150px]:h-8 w-auto" />
+        <a href="/" aria-label="الجامع — موسوعة الحديث النبوي" className="shrink-0 ml-1 sm:ml-2 md:max-[1150px]:ml-0.5 xl:ml-3 rounded-lg bg-[#FFFDF7] px-2.5 md:max-[1150px]:px-2 py-1 ring-1 ring-[#C9A96B]/50 transition-shadow hover:ring-[#C9A96B]">
+          <img src="/assets/brand/al-jami-horizontal.png" alt="الجامع — موسوعة الحديث النبوي" width={104} height={40} className="block h-9 sm:h-10 md:max-[1150px]:h-8 w-auto" />
         </a>
 
         <div className="hidden min-[1150px]:block w-px h-5 bg-[#C9A96B]/35 mx-1 shrink-0" />
 
         {/* Desktop: inline categories with dropdowns */}
-        <div className="hidden min-[960px]:flex items-center gap-0 xl:gap-0.5 flex-1 min-w-0">
+        <div className="hidden md:flex items-center gap-0 xl:gap-0.5 flex-1 min-w-0">
           {CATEGORIES.map(cat => (
             <div key={cat.id} className="shrink-0">
               <button
                 type="button"
                 onClick={() => toggle(cat.id)}
                 aria-expanded={open === cat.id}
-                className={`flex items-center gap-0.5 xl:gap-1 text-[0.8125rem] min-[960px]:max-[1050px]:text-[0.7812rem] xl:text-[0.8438rem] font-sans px-1 min-[1150px]:px-1.5 xl:px-2.5 py-2.5 rounded-md transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-0.5 xl:gap-1 text-[0.8125rem] md:max-[1050px]:text-[0.75rem] xl:text-[0.8438rem] font-sans px-1.5 md:max-[1050px]:px-1 xl:px-2.5 py-2.5 rounded-md transition-colors whitespace-nowrap ${
                   open === cat.id
                     ? 'bg-[#C9A96B] text-[#0F3D2E]'
                     : 'text-[#F8F1E4]/80 hover:text-[#FFFDF7] hover:bg-white/10'
@@ -353,12 +342,12 @@ export default function NavHeader() {
         </div>
 
         {/* Mobile: push toggles + menu button to the end */}
-        <div className="flex-1 min-[960px]:hidden" />
+        <div className="flex-1 md:hidden" />
 
         <div className="flex items-center gap-1.5 shrink-0">
           <AccountButton />
           <ThemeToggle />
-          <div className="hidden min-[960px]:flex items-center gap-1 xl:gap-2">
+          <div className="hidden md:flex items-center gap-1 xl:gap-2">
             <NumberingToggle />
             <NumeralToggle />
           </div>
@@ -370,7 +359,7 @@ export default function NavHeader() {
           onClick={() => { setMobileOpen(v => !v); setOpen(null) }}
           aria-label="القائمة"
           aria-expanded={mobileOpen}
-          className="min-[960px]:hidden flex items-center justify-center w-11 h-11 rounded-full text-[#F8F1E4] border border-[#C9A96B]/40 hover:border-[#C9A96B] hover:bg-white/10 transition-colors shrink-0"
+          className="md:hidden flex items-center justify-center w-11 h-11 rounded-full text-[#F8F1E4] border border-[#C9A96B]/40 hover:border-[#C9A96B] hover:bg-white/10 transition-colors shrink-0"
         >
           <UiIcon name={mobileOpen ? 'close' : 'menu'} size={18} />
         </button>
@@ -378,7 +367,7 @@ export default function NavHeader() {
 
       {/* Mobile: collapsible category menu (accordion — avoids clipping dropdowns) */}
       {mobileOpen && (
-        <div className="min-[960px]:hidden border-t border-[#C9A96B]/30 bg-surface text-ink max-h-[72vh] overflow-y-auto overscroll-contain">
+        <div className="md:hidden border-t border-[#C9A96B]/30 bg-surface text-ink max-h-[72vh] overflow-y-auto overscroll-contain">
           <div className="flex flex-wrap items-center gap-3 p-3 bg-[#0F3D2E]">
             <NumberingToggle />
             <NumeralToggle />

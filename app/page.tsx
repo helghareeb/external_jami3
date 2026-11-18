@@ -14,26 +14,8 @@ const GRADE_SHORTCUTS = [
   { label: 'الصحابة', href: '/narrators?companion=1', color: 'bg-amber-500 text-white border-amber-500' },
 ]
 
-// Films in public/media/ (made in motion-graphics/; see its README). The main film is the hero; the
-// wide ones carry an .ar.vtt caption track, the square feature films have their captions drawn in.
+// Main hero film in public/media/; the full set of encyclopedia & feature films lives at /videos.
 const MAIN_FILM = { src: 'promo', title: 'الجامع — موسوعة الحديث النبوي الشريف' }
-const ABOUT_FILM = { src: 'about', title: 'ما الجامع؟', note: 'منصّةٌ تعرض كتب السنة كما هي؛ لا تحكم على حديثٍ ولا راوٍ، والحكم من الدرر السنية' }
-const LIBRARY_FILM = { src: 'library', title: 'مكتبتي', note: 'مكتبة بحثية في حسابك: احفظ، ودوّن، وظلّل، ووثّق إلى Zotero وEndNote وLaTeX، وشارك مشرفك' }
-const TASHKEEL_FILM = { src: 'tashkeel', title: 'مطابقة التشكيل', note: 'زُبْد وزَبَد وزَبْد: حروفٌ واحدة ومعانٍ مختلفة — بحثٌ يفرّق بينها بحركاتها' }
-const CONNECT_FILM = { src: 'connect', title: 'الجامع في مساعدك الذكي', note: 'في ثلاث خطوات ودون حساب: انسخ الرابط، وأضفه إلى Claude أو ChatGPT أو Claude Code أو Codex، ثم اسأله' }
-const MCP_USES_FILM = { src: 'mcp-uses', title: 'ماذا تسأل مساعدك؟', note: 'أسئلةٌ حقيقية لمساعدٍ متصلٍ بالموسوعة: «أهذا حديث؟»، و«ما أصله؟»، والروايات وأحوال الرواة' }
-const MIGRATION_FILM ={ src: 'migration-film', title: 'من سطح المكتب إلى الويب', note: 'كيف نُقل البرنامج من تطبيق ويندوز إلى موقعٍ على الويب' }
-const NUMBERING_FILM = { src: 'numbering-film', title: 'ترقيم حرف والترقيم المطبوع', note: 'لماذا يختلف رقم الحديث من طبعةٍ لأخرى، وكيف تعزو بدقة' }
-const FEATURE_FILMS = [
-  { src: 'feature-sanad', title: 'السند والمتن' },
-  { src: 'feature-isnad-tree', title: 'شجرة الإسناد' },
-  { src: 'feature-narrators', title: 'الجرح والتعديل' },
-  { src: 'feature-takhrij', title: 'التخريج' },
-  { src: 'feature-matn-compare', title: 'مطابقة المتون' },
-  { src: 'feature-sharh-gharib', title: 'الشروح وغريب الحديث' },
-  { src: 'feature-search', title: 'البحث' },
-  { src: 'feature-rulings', title: 'أقوال العلماء' },
-]
 
 // Hadith pages that each show off a different part of the hadith page
 const HADITH_EXAMPLES = [
@@ -120,28 +102,22 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* The other films, and hadith pages to try */}
+      {/* Hadith examples & link to dedicated videos section */}
       <section className="max-w-6xl mx-auto px-4 pt-8 sm:pt-10">
         <div className="ui-card rounded-2xl p-5 sm:p-6">
-          <h2 className="text-base font-bold text-green-900 mb-1 font-display">أفلام الموسوعة</h2>
-          <p className="text-sm text-muted mb-4 font-sans">جولةٌ في ميزات الموسوعة، وأحاديث تكشف ما تتيحه صفحة الحديث</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {[ABOUT_FILM, CONNECT_FILM, LIBRARY_FILM, TASHKEEL_FILM, MCP_USES_FILM, MIGRATION_FILM, NUMBERING_FILM].map(film => (
-              <div key={film.src}>
-                <video controls preload="none" playsInline poster={`/media/${film.src}-poster.jpg`}
-                  aria-label={film.title}
-                  className="w-full aspect-video rounded-xl border border-[#D9C9A8] bg-[#faf6ec]">
-                  <source src={`/media/${film.src}.mp4`} type="video/mp4" />
-                  <track kind="captions" src={`/media/${film.src}.ar.vtt`} srcLang="ar" label="العربية" default />
-                </video>
-                <p className="text-sm font-semibold text-green-900 mt-2 font-display">{film.title}</p>
-                <p className="text-xs text-muted font-sans">{film.note}</p>
-              </div>
-            ))}
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <div>
+              <h2 className="text-base font-bold text-green-900 font-display">جرّب هذه الأحاديث</h2>
+              <p className="text-sm text-muted font-sans">أحاديث تكشف ما تتيحه صفحة الحديث من إسناد وتخريج وشروح</p>
+            </div>
+            <Link
+              href="/videos"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F3D2E] text-[#FFFDF7] hover:bg-[#16523E] px-4 py-2 text-xs sm:text-sm font-sans font-semibold transition-colors shrink-0"
+            >
+              <span>أفلام الموسوعة</span>
+              <span className="text-[#E6C77A]">←</span>
+            </Link>
           </div>
-
-          <p className="text-xs font-bold text-gray-500 mt-7 mb-2 font-sans">جرّب هذه الأحاديث:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {HADITH_EXAMPLES.map(ex => (
               <Link key={ex.id} href={`/hadith/${ex.id}`}
@@ -152,20 +128,6 @@ export default async function Home() {
                   <span className="text-amber-800">{ex.shows}</span>
                 </span>
               </Link>
-            ))}
-          </div>
-
-          <h3 className="text-sm font-bold text-gray-600 mt-7 mb-3 font-sans">ميزات صفحة الحديث</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {FEATURE_FILMS.map(film => (
-              <div key={film.src}>
-                <video controls preload="none" playsInline poster={`/media/${film.src}-poster.jpg`}
-                  aria-label={film.title}
-                  className="w-full aspect-square rounded-xl border border-[#D9C9A8] bg-[#faf6ec]">
-                  <source src={`/media/${film.src}.mp4`} type="video/mp4" />
-                </video>
-                <p className="text-sm font-semibold text-green-900 mt-1.5 font-display text-center">{film.title}</p>
-              </div>
             ))}
           </div>
         </div>
