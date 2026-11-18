@@ -4,7 +4,8 @@
 // small store the download screen, the progress pill and the offline reader all read from.
 import { useSyncExternalStore } from 'react'
 
-export const OFFLINE_FILES = '/api/offline/files/'
+const DIRECT_OFFLINE_URL = (process.env.NEXT_PUBLIC_OFFLINE_DATA_URL || '').replace(/\/+$/, '')
+export const OFFLINE_FILES = DIRECT_OFFLINE_URL ? `${DIRECT_OFFLINE_URL}/` : '/api/offline/files/'
 
 export interface OfflineManifest {
   version: string

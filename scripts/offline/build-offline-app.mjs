@@ -118,6 +118,7 @@ const common = {
     'process.env.NODE_ENV': '"production"',
     'process.env.NEXT_PUBLIC_SITE_URL': '"https://hadith.dev"',
     'process.env.SITE_URL': '"https://hadith.dev"',
+    'process.env.NEXT_PUBLIC_OFFLINE_DATA_URL': JSON.stringify(process.env.NEXT_PUBLIC_OFFLINE_DATA_URL || ''),
   },
   logLevel: 'warning',
   legalComments: 'none',
