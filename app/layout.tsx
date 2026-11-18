@@ -7,6 +7,7 @@ import SearchSubHeader, { SearchSubHeaderFallback } from './components/SearchSub
 import NumeralConverter from './components/NumeralConverter'
 import Analytics from './components/Analytics'
 import InstallApp from './components/InstallApp'
+import AppNavBar from './components/AppNavBar'
 import OfflineOffer from './components/OfflineOffer'
 import LibraryImport from './components/LibraryImport'
 import { NumberingProvider } from '@/lib/numberingContext'
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <LibraryImport />
             {/* The slim bar, and under it the site-wide search box (useSearchParams, so in Suspense) */}
             <header className="sticky top-0 z-50 shadow-sm">
+              <AppNavBar />
               <NavHeader />
               <Suspense fallback={<SearchSubHeaderFallback />}>
                 <SearchSubHeader />

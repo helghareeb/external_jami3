@@ -13,6 +13,10 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     scope: '/',
     display: 'standalone',
+    // Real tabs where the browser has a tabbed app window (Chromium); otherwise a standalone window,
+    // where AppNavBar adds back, forward, reload and «نافذة جديدة».
+    // 'tabbed' isn't in Next's manifest type yet
+    display_override: ['tabbed', 'standalone'] as unknown as MetadataRoute.Manifest['display_override'],
     orientation: 'any',
     background_color: '#FAF6EC',
     theme_color: '#0F3D2E',
