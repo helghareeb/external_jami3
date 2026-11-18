@@ -3,6 +3,13 @@ import pool from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
+// A hadith by its number in a book. The number must match exactly: «187» is hadith 187, never 1870-1879
+// (an earlier prefix match opened another hadith whenever a longer number began with the one typed).
+// A stored number may carry a suffix after a space — «2072 (م)» in Tirmidhi — and still counts.
+// With the printed numbering, a number can also sit inside a row that holds more than one of the
+// edition's hadiths (Bukhari 188 is printed in the row of 187); such a row is found by that number too.
+// Several rows can share a number (Muslim's narrations of one Abd al-Baqi number): all are returned,
+// in book order, for the reader to choose.
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -10,23 +17,37 @@ export async function GET(
   const { id } = await params
   const bookId = parseInt(id)
   const { searchParams } = new URL(req.url)
-  const num = searchParams.get('num')?.trim()
+  const raw = searchParams.get('num')?.trim() ?? ''
+  // Arabic-Indic digits typed into the box count as the same number; a suffix the reader types
+  // («692/1», «12 م») is dropped and every row with that number is listed.
+  const num = (raw.replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).match(/\d+/) || [''])[0]
   const prefParam = searchParams.get('pref')
   const pref = prefParam === 'harf' ? 'harf' : 'matboa'
 
-  if (!num || isNaN(bookId)) {
+  if (!num || !/^\d+$/.test(num) || isNaN(bookId)) {
     return NextResponse.json({ error: 'invalid' }, { status: 400 })
   }
 
   const numColumn = pref === 'harf' ? 'tarqeem_harf' : 'tarqeem_matboa1'
-  const { rows } = await pool.query(
+  let { rows } = await pool.query(
     `SELECT main_id FROM hadith_toc
      WHERE book_id = $1 AND is_leaf = true AND is_paragraph = true
-       AND (${numColumn} = $2 OR ${numColumn} LIKE $3)
-     ORDER BY left_value
-     LIMIT 5`,
-    [bookId, num, `${num}%`]
+       AND (btrim(${numColumn}) = $2 OR ${numColumn} LIKE $3)
+     ORDER BY id, main_id
+     LIMIT 20`,
+    [bookId, num, `${num} %`]
   )
+
+  if (rows.length === 0 && pref === 'matboa') {
+    // a printed number inside a row that holds more than one of the edition's hadiths
+    ;({ rows } = await pool.query(
+      `SELECT main_id FROM hadith_toc
+       WHERE book_id = $1 AND is_leaf = true AND is_paragraph = true AND content LIKE $2
+       ORDER BY id, main_id
+       LIMIT 20`,
+      [bookId, `%<رقم_حديث نوع="مطبوع">${num} </رقم_حديث>%`]
+    ))
+  }
 
   if (rows.length === 0) {
     return NextResponse.json({ found: false })
