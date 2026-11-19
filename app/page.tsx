@@ -14,14 +14,12 @@ const GRADE_SHORTCUTS = [
   { label: 'الصحابة', href: '/narrators?companion=1', color: 'bg-amber-500 text-white border-amber-500' },
 ]
 
-/* DEFERRED (web-only enhancement — not in legacy Windows app): hero promo video
 // Main hero film in public/media/; the full set of encyclopedia & feature films lives at /videos.
 const MAIN_FILM = { src: 'promo', title: 'الجامع — موسوعة الحديث النبوي الشريف' }
-*/
 
 // Hadith pages that each show off a different part of the hadith page
 const HADITH_EXAMPLES = [
-  { id: 5, title: 'إنما الأعمال بالنيات', source: 'صحيح البخاري ١', shows: 'الإسناد والتخريج والشروح' },
+  { id: 5, title: 'إنما الأعمال بالنيات', source: 'صحيح البخاري ١', shows: 'الإسناد والتخريج وحكم الدرر' },
   { id: 94, title: 'حديث جبريل: الإيمان أن تؤمن بالله وملائكته…', source: 'صحيح البخاري ٥٠', shows: 'خمسة نصوص من الشروح' },
   { id: 9337, title: 'من كان يؤمن بالله واليوم الآخر فلا يؤذ جاره', source: 'صحيح البخاري ٦٠١٨', shows: 'التخريج والشروح' },
   { id: 7430, title: '﴿فهل من مدّكر﴾', source: 'صحيح البخاري ٤٨٧١', shows: 'روايات بنفس المتن' },
@@ -55,7 +53,6 @@ export default async function Home() {
           </div>
           <p className="text-sm text-muted font-sans">قاعدة بيانات متكاملة لباحثي الحديث</p>
         </div>
-        {/* DEFERRED (web-only enhancement — not in legacy Windows app): hero promo <video>
         <video
           controls
           preload="metadata"
@@ -67,7 +64,6 @@ export default async function Home() {
           <source src={`/media/${MAIN_FILM.src}.mp4`} type="video/mp4" />
           <track kind="captions" src={`/media/${MAIN_FILM.src}.ar.vtt`} srcLang="ar" label="العربية" default />
         </video>
-        */}
 
         <div className="mt-5">
           <HomeSearch />
@@ -188,7 +184,6 @@ export default async function Home() {
               <h2 className="text-base font-bold text-green-900 font-display">جرّب هذه الأحاديث</h2>
               <p className="text-sm text-muted font-sans">أحاديث تكشف ما تتيحه صفحة الحديث من إسناد وتخريج وشروح</p>
             </div>
-            {/* DEFERRED (web-only enhancement — not in legacy Windows app): أفلام الموسوعة
             <Link
               href="/videos"
               className="inline-flex items-center gap-1.5 rounded-xl bg-[#0F3D2E] text-[#FFFDF7] hover:bg-[#16523E] px-4 py-2 text-xs sm:text-sm font-sans font-semibold transition-colors shrink-0"
@@ -196,7 +191,6 @@ export default async function Home() {
               <span>أفلام الموسوعة</span>
               <span className="text-[#E6C77A]">←</span>
             </Link>
-            */}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {HADITH_EXAMPLES.map(ex => (

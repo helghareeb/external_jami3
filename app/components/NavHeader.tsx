@@ -25,10 +25,10 @@ const CATEGORIES: NavCategory[] = [
       { href: '/compound-matn', label: 'المتون المجمعة' },
       { href: '/definitions', label: 'تعريفات' },
       { href: '/saved', label: 'مجالات المستخدم' },
+      { href: '/videos', label: 'أفلام الموسوعة' },
       // DEFERRED (web-only enhancement — not in legacy Windows app):
       // { href: '/hadiths/tarfs-by-isnad', label: 'أطراف على الأسانيد (إحصائي)', isNew: true },
       // { href: '/matn-compare', label: 'مقارنة المتون بالخوارزمية', isNew: true },
-      // { href: '/videos', label: 'أفلام الموسوعة', isNew: true },
       // { href: '/hadiths/chapters', label: 'فهرس الأبواب', isNew: true },
       // { href: '/chapters', label: 'بحث الأبواب', isNew: true },
       // { href: '/find-by-number', label: 'رقم الحديث', isNew: true },
@@ -42,12 +42,12 @@ const CATEGORIES: NavCategory[] = [
     label: 'رواة',
     links: [
       { href: '/narrators', label: 'قائمة الرواة' },
+      { href: '/companions', label: 'الصحابة' },
       { href: '/narrators/multi-book', label: 'رواة كتاب/كتب' },
       { href: '/narrator-types', label: 'تصنيفات خاصة بالرواة' },
       { href: '/narrators/jarh-terms', label: 'ألفاظ الجرح والتعديل' },
       { href: '/narrators/criticism-scholars', label: 'أقوال أهل العلم في أحوال الرواة' },
       // DEFERRED (web-only enhancement — not in legacy Windows app):
-      // { href: '/companions', label: 'الصحابة', isNew: true },
       // { href: '/narrators/generations', label: 'طبقات الرواة', isNew: true },
       // { href: '/scholars', label: 'أحكام المحدثين (ويب)', isNew: true },
       // { href: '/bio-search', label: 'التراجم', isNew: true },
@@ -198,7 +198,6 @@ const CATEGORIES: NavCategory[] = [
   //     // { href: '/books/transmission-genealogy', label: 'تداخل الكتب', isNew: true },
   //   ],
   // },
-  /* DEFERRED (web-only enhancement — not in legacy Windows app): «للمطورين»
   {
     id: 'developers',
     label: 'للمطورين',
@@ -209,7 +208,6 @@ const CATEGORIES: NavCategory[] = [
       { href: '/account', label: 'حسابي والرموز الشخصية' },
     ],
   },
-  */
 ]
 
 // Sign-in is optional: a person icon, labelled «دخول» until the reader signs in

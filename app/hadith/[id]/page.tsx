@@ -14,14 +14,11 @@ import TakhrijSection, { TakhrijBadges } from '@/app/components/TakhrijSection'
 import MatnGroupSection from '@/app/components/MatnGroupSection'
 import { sectionBadgeSlots } from '@/app/components/SectionBadges'
 import { activeServiceSections, INLINE_SERVICE_CONFIGS } from '@/app/components/HadithServiceSection'
-/* DEFERRED (web-only enhancement — not in legacy Windows app): Dorar UI & Sunnah English translation
 import DorarJudgment from '@/app/components/DorarJudgment'
 import type { DorarRuling } from '@/app/components/DorarJudgment'
 import EnglishTranslation, { type EnglishTranslationData } from '@/app/components/EnglishTranslation'
-import { matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
-*/
-import { DORAR_SOURCES } from '@/lib/dorar'
 import { citeItems } from '@/lib/citation'
+import { DORAR_SOURCES, matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
 import {
   parseSanadNarratorSegments,
   sanadSegmentsHaveNarrators,
@@ -630,7 +627,6 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   ).catch(() => ({ rows: [] as Array<{ node_id: number; text: string; is_leaf: boolean }> }))
   const musakaratNodes = musakaratRes.rows
 
-  /* DEFERRED (web-only enhancement — not in legacy Windows app): external Dorar rulings & Sunnah.com English translation
   // Dorar's rulings, fetched offline by scripts/dorar-crawl.mjs (table absent until its first run)
   const dorarSources = DORAR_SOURCES[Number(h.book_id)]
   // The key the rulings were filed under (see generateMetadata): stable when the printed number changes
@@ -656,12 +652,11 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
      WHERE t.main_id = $1 AND t.source = 'sunnah' AND t.lang = 'en'`,
     [mainId]
   ).catch(() => ({ rows: [] as EnglishTranslationData[] }))).rows[0]
-  */
 
   return (
     <>
       <HadithSidebarLayout
-        /* translationSlot={english ? <EnglishTranslation data={english} /> : undefined} */
+        translationSlot={english ? <EnglishTranslation data={english} /> : undefined}
         relatedTopicsSlot={musakaratNodes.length > 0 && (
         <div className="hadith-related-topics mb-5 flex items-center gap-2 flex-wrap border-t border-border pt-4">
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600">
@@ -703,11 +698,9 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
           ...sectionBadgeSlots(mainId, ['matn-similarity', 'variants', ...activeServiceSections(hadithServices).map(c => c.id)]),
           takhrij: <TakhrijBadges hadithId={mainId} />,
         }}
-        /* DEFERRED (web-only enhancement — not in legacy Windows app):
         dorarSlot={dorarRulings.length > 0 && dorarSources
           ? <DorarJudgment rulings={dorarRulings} searchUrl={dorarSearchUrl(matnSearchWords(h.content as string), dorarSources)} />
           : undefined}
-        */
         prevHadith={prevHadith}
         nextHadith={nextHadith}
       />

@@ -6,7 +6,7 @@ import NarratorExport from '@/app/components/NarratorExport'
 // DEFERRED (web-only enhancement — not in legacy Windows app): import CompareNarratorPicker from '@/app/components/CompareNarratorPicker'
 import SaveToLibrary from '@/app/components/SaveToLibrary'
 import HadithNote from '@/app/components/HadithNote'
-// DEFERRED (web-only enhancement — not in legacy Windows app): import NarratorTopics from '@/app/components/NarratorTopics'
+import NarratorTopics from '@/app/components/NarratorTopics'
 import BrandMark from '@/app/components/BrandMark'
 import UiIcon from '@/app/components/UiIcon'
 import { narratorMeta } from '@/lib/entityMeta'
@@ -766,7 +766,7 @@ export default async function NarratorPage({
           )}
         </div>
 
-        {/* DEFERRED (web-only enhancement — not in legacy Windows app): الدائرة العلمية & التوزيع الموضوعي للأحاديث
+        {/* DEFERRED (verified inaccurate: queries narrator_relations.is_sheikh which only stores special criticism relations instead of narrator_teachers): الدائرة العلمية
         {peerNarrators.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-teal-100 p-6">
             <h3 className="text-lg font-bold text-teal-900 mb-1 flex items-center gap-2">
@@ -796,12 +796,13 @@ export default async function NarratorPage({
             </ul>
           </div>
         )}
+        */}
 
+        {/* Topic distribution — lazy loaded */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-bold text-green-900 mb-4">التوزيع الموضوعي للأحاديث</h2>
           <NarratorTopics narratorId={narratorId} />
         </div>
-        */}
 
         {/* Hadiths in isnad chain — lazy loaded */}
         <NarratorHadiths narratorId={narratorId} narratorName={narrator.abb_name || narrator.name} />
