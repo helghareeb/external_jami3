@@ -121,14 +121,13 @@ export default async function TopicItemPage({
        ORDER BY cnt DESC`,
       [itemId]
     ).catch(() => ({ rows: [] })),
-    // Top companions: join through isnad_tree (rawy_id) + isnad_relations
-    // using tabaqa to identify Sahaba (non-empty tabaqa indicates companion generation)
+    // Top companions: derive from isnad_chains.narrator_id_array[1] on topic hadiths
     pool.query<TopCompanion>(
       `SELECT n.id, n.name, COUNT(DISTINCT hs.paragraph_main_id)::int AS cnt
        FROM hadith_subjects hs
-       JOIN isnad_relations ir ON ir.hadith_main_id = hs.paragraph_main_id
-       JOIN isnad_tree it ON it.id = ir.sand_id AND it.rawy_id IS NOT NULL
-       JOIN narrators n ON n.id = it.rawy_id AND n.tabaqa <> ''
+       JOIN isnad_hadiths ih ON ih.hadith_id = hs.paragraph_main_id
+       JOIN isnad_chains ic ON ic.id = ih.isnad_id
+       JOIN narrators n ON n.id = ic.narrator_id_array[1] AND n.is_companion = true
        WHERE hs.subject_id = $1
        GROUP BY n.id, n.name
        ORDER BY cnt DESC

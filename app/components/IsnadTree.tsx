@@ -771,21 +771,31 @@ export default function IsnadTree({
   return (
     <div dir="rtl" className="space-y-3">
       {/* Mode toggle */}
-      <div className="ui-segmented w-fit">
-        <button
-          type="button"
-          onClick={() => setMode('single')}
-          className={`ui-segmented-item ${mode === 'single' ? 'ui-segmented-item-active' : ''}`}
-        >
-          السلسلة
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('full')}
-          className={`ui-segmented-item ${mode === 'full' ? 'ui-segmented-item-active' : ''}`}
-        >
-          الشجرة الكاملة{allChains.length > 0 ? ` (${allChains.length})` : ''}
-        </button>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="ui-segmented w-fit">
+          <button
+            type="button"
+            onClick={() => setMode('single')}
+            className={`ui-segmented-item ${mode === 'single' ? 'ui-segmented-item-active' : ''}`}
+          >
+            السلسلة
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('full')}
+            className={`ui-segmented-item ${mode === 'full' ? 'ui-segmented-item-active' : ''}`}
+          >
+            الشجرة الكاملة{allChains.length > 0 ? ` (${allChains.length})` : ''}
+          </button>
+        </div>
+        {chains[0]?.narrators[0]?.id && (
+          <Link
+            href={`/isnad-tree?rawy=${chains[0].narrators[0].id}`}
+            className="text-xs text-green-700 hover:underline font-medium"
+          >
+            تصفح في شجرة الأسانيد ←
+          </Link>
+        )}
       </div>
 
       <p className="text-xs text-gray-400">

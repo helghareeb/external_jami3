@@ -14,7 +14,7 @@ function primaryCity(living: string | null, birth: string | null): string {
 
 const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string, Chip[]>> => {
   const empty = { rows: [] as never[] }
-  const [commentaryRes, groupSharhRes, groupRes, witnessesRes, narratorsRes, contentRes] = await Promise.all([
+  const [commentaryRes, groupSharhRes, groupRes, witnessesRes, narratorsRes, contentRes, rwahBooksRes] = await Promise.all([
     // /api/hadith/[id]/commentary — per service type (content capped at 100 there)
     pool.query<{ type_id: number; n: number; books: number }>(
       `SELECT hsl.type_id::int AS type_id, COUNT(*)::int AS n, COUNT(DISTINCT hsc.book_id)::int AS books
@@ -70,6 +70,19 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
     // XML tags in hadith_toc.content for tafsir (<آية>), qiraat (<قراءة>), places (<علم_مكان>)
     pool.query<{ content: string | null }>(
       `SELECT content FROM hadith_toc WHERE main_id = $1`,
+      [hadithId]
+    ).catch(() => empty),
+    // /api/hadith/[id]/narrators-books — narrator count and distinct narrator_books count
+    pool.query<{ narrators: number; books: number }>(
+      `SELECT COUNT(DISTINCT cn.n_id)::int AS narrators,
+              COUNT(DISTINCT nb.book_id)::int AS books
+       FROM (
+         SELECT DISTINCT unnest(ic.narrator_id_array) AS n_id
+         FROM isnad_hadiths ih
+         JOIN isnad_chains ic ON ic.id = ih.isnad_id
+         WHERE ih.hadith_id = $1
+       ) cn
+       LEFT JOIN narrator_books nb ON nb.narrator_id = cn.n_id`,
       [hadithId]
     ).catch(() => empty),
   ])
@@ -132,6 +145,14 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
 
   if (ayaCount > 0) chips['svc-tafsser'] = [{ text: `${ayaCount} آية` }]
   if (qiraaCount > 0) chips['svc-kerat'] = [{ text: `${qiraaCount} قراءة` }]
+
+  const rwahStats = rwahBooksRes.rows[0]
+  if (rwahStats && rwahStats.narrators > 0) {
+    chips['svc-rwah'] = [
+      { text: `${rwahStats.narrators} راوٍ` },
+      ...(rwahStats.books > 0 ? [{ text: `${rwahStats.books} كتاب`, tone: 'info' as const }] : []),
+    ]
+  }
 
   return chips
 })

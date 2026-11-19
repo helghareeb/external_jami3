@@ -589,6 +589,10 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
 
   if (/<علم_مكان[\s>]/.test(rawXmlContent)) hadithServices.countries = true
 
+  // تخريج الرواة: backed by narrator_books (114,870 narrator-book mappings) whenever the hadith has chains
+  if (chains.length > 0) hadithServices.rwah = true
+  else delete hadithServices.rwah
+
   const sanadSegments = parseSanadNarratorSegments(h.content as string)
   const sanadNarratorIds = [
     ...new Set(

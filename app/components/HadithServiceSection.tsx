@@ -1,7 +1,7 @@
 import CommentaryInline from './CommentaryInline'
 import WitnessesInline from './WitnessesInline'
 import NarratorsByRegionInline from './NarratorsByRegionInline'
-import MatnComparisonInline from './MatnComparisonInline'
+import NarratorsBooksInline from './NarratorsBooksInline'
 import QuranRefsInline from './QuranRefsInline'
 import TafsirInline from './TafsirInline'
 
@@ -16,9 +16,9 @@ export type ServiceSectionKind =
   | 'commentary'
   | 'witnesses'
   | 'countries'
-  | 'matn_comparison'
   | 'kerat'
   | 'tafsser'
+  | 'rwah'
 
 export interface ServiceSectionConfig {
   key: HadithServiceKey
@@ -45,7 +45,7 @@ export const INLINE_SERVICE_CONFIGS: ServiceSectionConfig[] = [
   { key: 'countries', id: 'svc-countries', label: 'الأماكن والرواية بالبلدان', kind: 'countries' },
   { key: 'modrag', id: 'svc-modrag', label: 'المدرج', kind: 'commentary', commentaryType: 2 },
   { key: 'kerat', id: 'svc-kerat', label: 'القراءات', kind: 'kerat' },
-  { key: 'rwah', id: 'svc-rwah', label: 'تخريج الرواة', kind: 'commentary', commentaryType: 9 },
+  { key: 'rwah', id: 'svc-rwah', label: 'تخريج الرواة', kind: 'rwah' },
 ]
 
 export function activeServiceSections(
@@ -75,12 +75,12 @@ export default function HadithServiceSection({
       return <WitnessesInline hadithId={hadithId} />
     case 'countries':
       return <NarratorsByRegionInline hadithId={hadithId} />
-    case 'matn_comparison':
-      return <MatnComparisonInline hadithId={hadithId} />
     case 'kerat':
       return <QuranRefsInline hadithId={hadithId} />
     case 'tafsser':
       return <TafsirInline hadithId={hadithId} />
+    case 'rwah':
+      return <NarratorsBooksInline hadithId={hadithId} />
     default:
       return null
   }

@@ -10,21 +10,27 @@ interface CountRow {
 }
 
 export default async function IndexesHubPage() {
-  const { rows: counts } = await pool
-    .query<CountRow>(
-      `SELECT index_id, COUNT(*)::int AS cnt
-       FROM hadith_index_items
-       WHERE index_id = ANY($1::int[])
-       GROUP BY index_id`,
-      [[2, 4, 5, 8, 9, 13, 14]]
-    )
-    .catch(() => ({ rows: [] as CountRow[] }))
+  const [{ rows: counts }, isnadRes, gwamhRes] = await Promise.all([
+    pool
+      .query<CountRow>(
+        `SELECT index_id, COUNT(*)::int AS cnt
+         FROM hadith_index_items
+         WHERE index_id = ANY($1::int[])
+         GROUP BY index_id`,
+        [[2, 4, 5, 8, 9, 13, 14]]
+      )
+      .catch(() => ({ rows: [] as CountRow[] })),
+    pool.query<{ cnt: number }>(`SELECT COUNT(*)::int AS cnt FROM isnad_tree`).catch(() => ({ rows: [{ cnt: 0 }] })),
+    pool.query<{ cnt: number }>(`SELECT COUNT(*)::int AS cnt FROM gwamh_items`).catch(() => ({ rows: [{ cnt: 0 }] })),
+  ])
 
   const byId = new Map(counts.map(r => [r.index_id, r.cnt]))
 
   const quranTotal = byId.get(2) ?? 0
   const namesTotal = (byId.get(4) ?? 0) + (byId.get(5) ?? 0) + (byId.get(8) ?? 0) + (byId.get(9) ?? 0) + (byId.get(13) ?? 0)
   const poetryTotal = byId.get(14) ?? 0
+  const isnadTreeTotal = isnadRes.rows[0]?.cnt ?? 0
+  const gwamhTotal = gwamhRes.rows[0]?.cnt ?? 0
 
   const cards = [
     {
@@ -77,6 +83,40 @@ export default async function IndexesHubPage() {
       iconColor: 'text-purple-700',
       titleColor: 'text-purple-900',
       countColor: 'text-purple-700 bg-purple-100',
+    },
+    {
+      href: '/isnad-tree',
+      title: 'شجرة الأسانيد',
+      subtitle: 'تدرّج سلاسل الإسناد من الصحابة والتابعين إلى المصنّفين',
+      count: isnadTreeTotal,
+      unit: 'عقدة',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+          <path strokeLinecap="round" strokeLinejoin="round"
+            d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+        </svg>
+      ),
+      bg: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
+      iconColor: 'text-teal-700',
+      titleColor: 'text-teal-900',
+      countColor: 'text-teal-700 bg-teal-100',
+    },
+    {
+      href: '/gwamh',
+      title: 'جوامع الآثار',
+      subtitle: 'آثار الصحابة الموقوفة وآثار التابعين المقطوعة مرتّبةً بالأعلام',
+      count: gwamhTotal,
+      unit: 'عَلَم',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+          <path strokeLinecap="round" strokeLinejoin="round"
+            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+      ),
+      bg: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
+      iconColor: 'text-orange-700',
+      titleColor: 'text-orange-900',
+      countColor: 'text-orange-700 bg-orange-100',
     },
   ]
 

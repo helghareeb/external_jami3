@@ -205,9 +205,14 @@ export default async function MawqufPage({
         <p className="text-sm text-gray-500 mb-2">
           أحاديث مصنَّفة بحسب نوع الإسناد من جداول الأسانيد — موقوف على الصحابي أو مقطوع عند التابعي أو مرسل
         </p>
-        <div className="bg-amber-50 border border-amber-100 rounded-lg p-2.5 text-xs text-amber-700">
-          التصنيف مأخوذ من حقل{' '}
-          <span className="font-mono font-bold">isnad_type</span> في جدول الأسانيد مباشرةً
+        <div className="bg-amber-50 border border-amber-100 rounded-lg p-2.5 text-xs text-amber-700 flex items-center justify-between flex-wrap gap-2">
+          <span>
+            التصنيف مأخوذ من حقل{' '}
+            <span className="font-mono font-bold">isnad_type</span> في جدول الأسانيد مباشرةً
+          </span>
+          <Link href="/gwamh" className="font-semibold text-green-800 hover:underline">
+            تصفّح جوامع الآثار — آثار الصحابة (٧١١) والتابعين (١٬٠٥٣) ←
+          </Link>
         </div>
       </div>
 
