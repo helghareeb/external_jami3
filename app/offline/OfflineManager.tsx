@@ -9,6 +9,7 @@ import {
   removeOfflineData, startOfflineDownload, useOfflineState, type OfflineManifest,
 } from '@/lib/offline/client'
 import { canPrompt, installApp } from '@/app/components/InstallApp'
+import { inDesktopApp } from '@/lib/desktopApps'
 
 // One step: install the app where the browser offers it, and start the download
 const installAndStart = () => {
@@ -33,6 +34,9 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
   const [manifest, setManifest] = useState<OfflineManifest | null>(null)
   const [online, setOnline] = useState(true)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  // In the desktop app «الجامع» is already installed: this card only downloads the encyclopedia
+  const [desk, setDesk] = useState(false)
+  useEffect(() => { setDesk(inDesktopApp()) }, [])
 
   useEffect(() => {
     refreshOfflineStatus()
@@ -123,12 +127,12 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
         </>
       ) : (
         <>
-          <p className="font-bold text-green-900">ثبّت الجامع على جهازك</p>
+          <p className="font-bold text-green-900">{desk ? 'حمّل الموسوعة على جهازك' : 'ثبّت الجامع على جهازك'}</p>
           <p className="text-sm text-muted mt-1">الموقع كله بكل صفحاته وأدواته على جهازك، يعمل بلا اتصال.</p>
           <ol className="mt-3 space-y-1.5 text-sm">
-            <li><b>١.</b> اضغط «تثبيت الجامع» ووافق إن سألك المتصفح{m && <> ({formatBytes(m.downloadSize)}، ويُفضَّل عبر Wi-Fi)</>}.</li>
-            <li><b>٢.</b> أبقِ الصفحة مفتوحة حتى يكتمل الشريط. إن انقطع الاتصال يكمل من حيث توقّف.</li>
-            <li><b>٣.</b> افتح الجامع من أيقونته متى شئت، ولو دون إنترنت.</li>
+            <li><b>١.</b> {desk ? 'اضغط «تحميل الموسوعة»' : 'اضغط «تثبيت الجامع» ووافق إن سألك المتصفح'}{m && <> ({formatBytes(m.downloadSize)}، ويُفضَّل عبر Wi-Fi)</>}.</li>
+            <li><b>٢.</b> {desk ? 'أبقِ التطبيق مفتوحًا' : 'أبقِ الصفحة مفتوحة'} حتى يكتمل الشريط. إن انقطع الاتصال يكمل من حيث توقّف.</li>
+            <li><b>٣.</b> {desk ? 'بعدها يعمل الجامع دون إنترنت متى فتحته.' : 'افتح الجامع من أيقونته متى شئت، ولو دون إنترنت.'}</li>
           </ol>
           {s.phase === 'paused' && s.status && s.status.staged > 0 && (
             <p className="text-sm mt-2">تمّ تحميل {formatBytes(s.status.stagedBytes)} من قبل، ويكمل التحميل من حيث توقّف.</p>
@@ -144,7 +148,7 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
           )}
           <button type="button" onClick={installAndStart} disabled={!online || (!m && !s.status?.manifest)}
             className={btn + ' mt-3 disabled:opacity-50'}>
-            <DownloadIcon /> {s.phase === 'paused' || s.status?.staged ? 'متابعة التحميل' : 'تثبيت الجامع'}
+            <DownloadIcon /> {s.phase === 'paused' || s.status?.staged ? 'متابعة التحميل' : desk ? 'تحميل الموسوعة' : 'تثبيت الجامع'}
           </button>
           {!online && <p className="text-xs text-muted mt-2">يلزم اتصال بالإنترنت للتحميل.</p>}
           {online && !m && s.phase !== 'checking' && <p className="text-xs text-muted mt-2">بيانات التحميل غير متاحة الآن.</p>}

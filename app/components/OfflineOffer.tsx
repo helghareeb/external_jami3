@@ -117,20 +117,24 @@ export default function OfflineOffer() {
     startOfflineDownload()
   }
 
+  // In the desktop app «الجامع» is already installed: the button only downloads the encyclopedia
+  const desk = inDesktopApp()
   return (
     <div role="dialog" aria-label="استخدم الجامع دون إنترنت"
       className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"
       style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-      <p className="font-bold">{resuming ? 'أكمل تحميل الجامع' : 'استخدم الجامع دون إنترنت'}</p>
+      <p className="font-bold">{resuming ? 'أكمل تحميل الجامع' : desk ? 'شغّل الجامع دون إنترنت' : 'استخدم الجامع دون إنترنت'}</p>
       <p className="text-xs opacity-80 leading-relaxed mt-1">
         {resuming
           ? `تمّ تحميل ${formatBytes(s.status!.stagedBytes)}، ويكمل من حيث توقّف.`
-          : 'حمّل الموسوعة كاملة على جهازك مرة واحدة، فيعمل الموقع كله بلا اتصال.'}
+          : desk
+            ? 'حمّل الموسوعة كاملة إلى التطبيق مرة واحدة، فيعمل كله بلا اتصال.'
+            : 'حمّل الموسوعة كاملة على جهازك مرة واحدة، فيعمل الموقع كله بلا اتصال.'}
         {manifest && <> حجم التحميل {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).</>}
       </p>
       <div className="flex items-center gap-2 mt-3">
         <button type="button" onClick={start} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
-          {resuming ? 'متابعة التحميل' : 'تثبيت الجامع'}
+          {resuming ? 'متابعة التحميل' : desk ? 'تحميل الموسوعة' : 'تثبيت الجامع'}
         </button>
         <a href="/offline" className="text-sm underline underline-offset-2 opacity-90">التفاصيل</a>
         <button type="button" onClick={dismiss} className="mr-auto text-sm opacity-70 hover:opacity-100">ليس الآن</button>
