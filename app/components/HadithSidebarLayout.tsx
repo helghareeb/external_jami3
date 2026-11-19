@@ -9,7 +9,7 @@ import HadithExport from './HadithExport'
 import ChainTimeline from './ChainTimeline'
 import HadithNote from './HadithNote'
 import TrackHadithView from './TrackHadithView'
-import IsnadTree from './IsnadTree'
+import IsnadTree, { type IsnadRelationAlert, type NarratorPairRelation } from './IsnadTree'
 import UiIcon from './UiIcon'
 import MatnVariants from './MatnVariants'
 import { displayNarratorName } from '@/lib/narratorName'
@@ -56,6 +56,7 @@ export interface NarratorInChain {
 }
 
 export interface Chain {
+  chainId?: number
   narrators: NarratorInChain[]
   tahdethTerm?: string | null
   narratorTerms?: Record<number, string>
@@ -80,6 +81,7 @@ export interface Judgment {
   source_part: number | null
   source_page: number | null
   source_content_id: number | null
+  source_is_book_toc?: boolean
 }
 
 export interface HadithInfo {
@@ -111,6 +113,8 @@ export interface HadithSidebarLayoutProps {
   hadith: HadithInfo
   chains: Chain[]
   narratorCriticism?: Record<number, CriticismGroup[]>
+  isnadRelations?: IsnadRelationAlert[]
+  narratorRelations?: NarratorPairRelation[]
   commonNarrators: NarratorInChain[]
   judgments: Judgment[]
   subjects: Array<{ id: number; title: string }>
@@ -144,7 +148,7 @@ const ISNAD_TYPE_MAP: Record<number, { label: string; cls: string; desc: string 
 
 export default function HadithSidebarLayout({
   sectionTarget, chapterTarget,
-  hadithId, hadith: h, chains, narratorCriticism = {}, commonNarrators,
+  hadithId, hadith: h, chains, narratorCriticism = {}, isnadRelations = [], narratorRelations = [], commonNarrators,
   judgments, subjects, relatedHadiths, takhrijBooks, takhrijSummary,
   hadithServices, isnadType,
   sanadSegments,
@@ -580,7 +584,13 @@ export default function HadithSidebarLayout({
           ) : (
             <div className="space-y-3">
               {/* Primary: this hadith's isnad in a React Flow (rich سلسلة nodes) with a toggle to the full cross-book tree */}
-              <IsnadTree hadithId={hadithId} chains={chains} narratorCriticism={narratorCriticism} />
+              <IsnadTree
+                hadithId={hadithId}
+                chains={chains}
+                narratorCriticism={narratorCriticism}
+                isnadRelations={isnadRelations}
+                narratorRelations={narratorRelations}
+              />
 
               {/* Secondary: chronological (death-year) view of the primary chain */}
               <details className="rounded-xl border border-border bg-surface overflow-hidden group">
@@ -670,7 +680,7 @@ export default function HadithSidebarLayout({
                           {j.source_book && (
                             <div className="mt-1">
                               {j.source_content_id ? (
-                                <Link href={`/service-content/${j.source_content_id}`}
+                                <Link href={j.source_is_book_toc ? `/hadith/${j.source_content_id}` : `/service-content/${j.source_content_id}`}
                                   className="text-xs text-blue-600 hover:underline">
                                   {j.source_book}{j.source_part != null && j.source_page != null ? `: (${j.source_part} / ${j.source_page})` : ''}
                                 </Link>

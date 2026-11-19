@@ -11,15 +11,16 @@ export async function GET(
   const hadithId = parseInt(id)
   if (isNaN(hadithId)) return NextResponse.json({ chains: [] })
 
-  // Step 1: Find group_id for this hadith
-  const groupRes = await pool.query(
-    `SELECT group_id FROM takhrij WHERE hadith_id = $1 LIMIT 1`,
+  // Step 1: Find ALL group_ids for this hadith (a hadith can belong to multiple takhrij groups)
+  const groupRes = await pool.query<{ group_id: number }>(
+    `SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
     [hadithId]
   )
-  const groupId = groupRes.rows[0]?.group_id
-  if (!groupId) return NextResponse.json({ chains: [], message: 'لا توجد تخريجات مشتركة' })
+  const groupIds = groupRes.rows.map(r => Number(r.group_id))
+  if (groupIds.length === 0) return NextResponse.json({ chains: [], message: 'لا توجد تخريجات مشتركة' })
+  const groupId = groupIds[0]
 
-  // Step 2: Get all chains for all parallel hadiths in this group
+  // Step 2: Get all chains for all parallel hadiths across all matching groups
   // Note: SELECT DISTINCT requires ORDER BY expressions to be in the select list;
   // use a subquery to sort after deduplication.
   const { rows: rawChains } = await pool.query(
@@ -39,12 +40,12 @@ export async function GET(
        JOIN hadith_toc ht ON ht.main_id = t.hadith_id
        JOIN books b ON b.id = ht.book_id
        LEFT JOIN isnad_tahdeth it ON it.id = ih.sanad_tahdeth_id
-       WHERE t.group_id = $1
+       WHERE t.group_id = ANY($1::int[])
          AND array_length(ic.narrator_id_array, 1) >= 2
      ) sub
      ORDER BY narrator_id_array[1], array_length(narrator_id_array, 1)
      LIMIT 100`,
-    [groupId]
+    [groupIds]
   ).catch(async () => {
     return pool.query(
       `SELECT narrator_id_array, hadith_id, book_title, NULL::text as takhrij_author, NULL::int as takhrij_death, NULL::text as hadith_num, NULL::text as tahdeth_raw
@@ -58,12 +59,12 @@ export async function GET(
          JOIN isnad_chains ic ON ic.id = ih.isnad_id
          JOIN hadith_toc ht ON ht.main_id = t.hadith_id
          JOIN books b ON b.id = ht.book_id
-         WHERE t.group_id = $1
+         WHERE t.group_id = ANY($1::int[])
            AND array_length(ic.narrator_id_array, 1) >= 2
        ) sub
        ORDER BY narrator_id_array[1], array_length(narrator_id_array, 1)
        LIMIT 100`,
-      [groupId]
+      [groupIds]
     )
   })
 

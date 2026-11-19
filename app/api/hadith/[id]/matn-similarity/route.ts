@@ -25,9 +25,9 @@ export async function GET(
 
   const baseDisplay = baseRaw ? (splitSanadMatn(baseRaw).matn || '') : ''
 
-  // Fetch all parallel hadiths in the same takhrij group + their old label
+  // Fetch all parallel hadiths across ALL matching takhrij groups + their old label
   const parallelRes = await pool.query(
-    `SELECT
+    `SELECT DISTINCT ON (t.hadith_id)
        t.hadith_id,
        h.book_id,
        h.content,
@@ -50,13 +50,16 @@ export async function GET(
         LIMIT 1
      ) lc ON true
      LEFT JOIN matn_comparison mc
-       ON mc.master_compound_id = (
-            SELECT compound_matn_id FROM takhrij WHERE hadith_id = $1 LIMIT 1
+       ON mc.master_compound_id IN (
+            SELECT DISTINCT compound_matn_id
+            FROM takhrij
+            WHERE hadith_id = $1 AND compound_matn_id IS NOT NULL AND compound_matn_id > 0
           )
        AND mc.slave_hadith_id = t.hadith_id
-     WHERE t.group_id = (
-       SELECT group_id FROM takhrij WHERE hadith_id = $1 LIMIT 1
+     WHERE t.group_id IN (
+       SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL
      )
+     ORDER BY t.hadith_id, lc.description NULLS LAST
      LIMIT 150`,
     [hadithId]
   ).catch(() => ({ rows: [] }))

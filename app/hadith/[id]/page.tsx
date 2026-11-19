@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import Link from '@/app/components/Link'
 import HadithSidebarLayout from '@/app/components/HadithSidebarLayout'
 import type { NarratorInChain, Chain, CriticismGroup } from '@/app/components/HadithSidebarLayout'
+import type { IsnadRelationAlert, NarratorPairRelation } from '@/app/components/IsnadTree'
 import type { AdjacentHadithInfo } from '@/app/components/PrevNextNav'
 import TakhrijSection, { TakhrijBadges } from '@/app/components/TakhrijSection'
 import MatnGroupSection from '@/app/components/MatnGroupSection'
@@ -132,21 +133,27 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
       [mainId]
     ),
     pool.query(
-      // The original prints each saying together with the source it is linked to (SayLink →
-      // ServiceMainID). hadith_judgment_links holds exactly those links, per saying, so the book no
-      // longer has to be guessed from a death year or a ربط attribute and then assigned positionally.
+      // Include both service-book links (is_book_toc = false -> hadith_service_content)
+      // and hadith-book links (is_book_toc = true -> hadith_toc, linking to /hadith/[id]).
       `SELECT DISTINCT ON (jh.say_id)
               jh.say_id,
-              hjl.service_main_id, hsc.book_name, hsc.part_num, hsc.page_num
+              hjl.service_main_id,
+              hjl.is_book_toc,
+              COALESCE(hsc.book_name, hb.title, ht.book_name) AS book_name,
+              COALESCE(hsc.part_num, ht.part_num) AS part_num,
+              COALESCE(hsc.page_num, ht.page_num) AS page_num
        FROM hadith_judgment_hits jh
-       JOIN hadith_judgment_links hjl ON hjl.say_id = jh.say_id AND hjl.is_book_toc = false
-       JOIN hadith_service_content hsc ON hsc.id = hjl.service_main_id
+       JOIN hadith_judgment_links hjl ON hjl.say_id = jh.say_id
+       LEFT JOIN hadith_service_content hsc ON hjl.is_book_toc = false AND hsc.id = hjl.service_main_id
+       LEFT JOIN hadith_toc ht ON hjl.is_book_toc = true AND ht.main_id = hjl.service_main_id
+       LEFT JOIN books hb ON hb.id = ht.book_id
        WHERE jh.hadith_id = $1
-       ORDER BY jh.say_id, hjl.service_main_id`,
+         AND (hsc.id IS NOT NULL OR ht.main_id IS NOT NULL)
+       ORDER BY jh.say_id, hjl.is_book_toc ASC, hjl.service_main_id`,
       [mainId]
     ),
     pool.query(
-      `SELECT ic.narrator_ids, ih.isnad_type, it.sand_tahdeth AS tahdeth_term
+      `SELECT ic.id AS chain_id, ic.narrator_ids, ih.isnad_type, it.sand_tahdeth AS tahdeth_term
        FROM isnad_hadiths ih
        JOIN isnad_chains ic ON ih.isnad_id = ic.id
        LEFT JOIN isnad_tahdeth it ON it.id = ih.sanad_tahdeth_id
@@ -328,10 +335,14 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   const chains: Chain[] = []
   if (isnadRes.rows.length > 0) {
     const allIds = new Set<number>()
-    const chainRows: Array<{ ids: number[]; tahdethTerm: string | null }> = []
+    const chainRows: Array<{ chainId: number; ids: number[]; tahdethTerm: string | null }> = []
     for (const row of isnadRes.rows) {
       const ids = (row.narrator_ids as string).trim().split(/\s+/).filter(Boolean).map(Number)
-      chainRows.push({ ids, tahdethTerm: (row.tahdeth_term as string | null) ?? null })
+      chainRows.push({
+        chainId: Number(row.chain_id),
+        ids,
+        tahdethTerm: (row.tahdeth_term as string | null) ?? null,
+      })
       ids.forEach(nid => allIds.add(nid))
     }
     if (allIds.size > 0) {
@@ -351,7 +362,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
       tahdethTypesRes.rows.forEach(r => { tahdethTypesMap[r.id] = r.text })
 
       const seenChains = new Set<string>()
-      for (const { ids, tahdethTerm: rawTahdeth } of chainRows) {
+      for (const { chainId, ids, tahdethTerm: rawTahdeth } of chainRows) {
         const key = ids.join('-')
         if (seenChains.has(key)) continue
         seenChains.add(key)
@@ -380,36 +391,110 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
           const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
           tahdethTerm = dominant ? (tahdethTypesMap[parseInt(dominant[0])] ?? null) : null
         }
-        chains.push({ narrators, tahdethTerm, narratorTerms })
+        chains.push({ chainId, narrators, tahdethTerm, narratorTerms })
       }
     }
   }
 
-  // جرح وتعديل for the isnad narrators — show all critics' sayings (not just Ibn Hajar's grade)
+  // جرح وتعديل + isnad_relations (علل السند) + narrator_relations (علاقات السماع والتفضيل) for chain narrators
   const narratorCriticism: Record<number, CriticismGroup[]> = {}
+  const isnadRelations: IsnadRelationAlert[] = []
+  let narratorRelations: NarratorPairRelation[] = []
   if (chains.length > 0) {
     const chainNarIds = Array.from(new Set(chains.flatMap(c => c.narrators.map(n => n.id))))
-    if (chainNarIds.length > 0) {
-      const critRes = await pool.query<{ narrator_id: number; scientist_name: string | null; scientist_noun_id: number | null; say_text: string | null; garh_label: string | null; say_sort: number }>(
-        `SELECT narrator_id, COALESCE(scientist_name, 'غير معروف') AS scientist_name,
-                scientist_noun_id, say_text, garh_label, say_sort
-         FROM narrator_criticism
-         WHERE narrator_id = ANY($1::int[])
-         ORDER BY narrator_id, scientist_name, say_sort`,
-        [chainNarIds]
-      ).catch(() => ({ rows: [] as Array<{ narrator_id: number; scientist_name: string | null; scientist_noun_id: number | null; say_text: string | null; garh_label: string | null; say_sort: number }> }))
+    const [critRes, irRes, nrRes] = await Promise.all([
+      chainNarIds.length > 0
+        ? pool.query<{ narrator_id: number; scientist_name: string | null; scientist_noun_id: number | null; say_text: string | null; garh_label: string | null; say_sort: number }>(
+            `SELECT narrator_id, COALESCE(scientist_name, 'غير معروف') AS scientist_name,
+                    scientist_noun_id, say_text, garh_label, say_sort
+             FROM narrator_criticism
+             WHERE narrator_id = ANY($1::int[])
+             ORDER BY narrator_id, scientist_name, say_sort`,
+            [chainNarIds]
+          ).catch(() => ({ rows: [] as Array<{ narrator_id: number; scientist_name: string | null; scientist_noun_id: number | null; say_text: string | null; garh_label: string | null; say_sort: number }> }))
+        : Promise.resolve({ rows: [] as Array<{ narrator_id: number; scientist_name: string | null; scientist_noun_id: number | null; say_text: string | null; garh_label: string | null; say_sort: number }> }),
+      pool.query<{ chain_id: number; relation_id: number; relation_label: string; rwah: string | null }>(
+        `SELECT ir.sand_id AS chain_id, ir.relation_id, irt.text AS relation_label, ir.rwah
+         FROM isnad_relations ir
+         JOIN isnad_relation_types irt ON irt.id = ir.relation_id
+         WHERE ir.hadith_main_id = $1
+         ORDER BY ir.sand_id, ir.relation_id`,
+        [mainId]
+      ).catch(() => ({ rows: [] as Array<{ chain_id: number; relation_id: number; relation_label: string; rwah: string | null }> })),
+      chainNarIds.length > 1
+        ? pool.query<{ first_id: number; second_id: number; relation_type: number; relation_label: string; is_sheikh: boolean; say_text: string | null; scientist_name: string | null }>(
+            `SELECT DISTINCT ON (nr.first_id, nr.second_id, nr.relation_type)
+                    nr.first_id, nr.second_id, nr.relation_type, nrt.text AS relation_label,
+                    nr.is_sheikh, nc.say_text, nc.scientist_name
+             FROM narrator_relations nr
+             JOIN narrator_relation_types nrt ON nrt.id = nr.relation_type
+             LEFT JOIN narrator_criticism nc ON nc.id = nr.legacy_say_id
+             WHERE nr.first_id = ANY($1::int[]) AND nr.second_id = ANY($1::int[])
+               AND nr.first_id <> nr.second_id
+             LIMIT 100`,
+            [chainNarIds]
+          ).catch(() => ({ rows: [] as Array<{ first_id: number; second_id: number; relation_type: number; relation_label: string; is_sheikh: boolean; say_text: string | null; scientist_name: string | null }> }))
+        : Promise.resolve({ rows: [] as Array<{ first_id: number; second_id: number; relation_type: number; relation_label: string; is_sheikh: boolean; say_text: string | null; scientist_name: string | null }> }),
+    ])
 
-      const byNar: Record<number, Record<string, CriticismGroup>> = {}
-      for (const r of critRes.rows) {
-        if (!r.say_text) continue
-        const nid = Number(r.narrator_id)
-        const sci = r.scientist_name || 'غير معروف'
-        if (!byNar[nid]) byNar[nid] = {}
-        if (!byNar[nid][sci]) byNar[nid][sci] = { scientist_name: sci, scientist_noun_id: r.scientist_noun_id, entries: [] }
-        byNar[nid][sci].entries.push({ text: r.say_text, garh_label: r.garh_label || null })
-      }
-      for (const nid of Object.keys(byNar)) narratorCriticism[Number(nid)] = Object.values(byNar[Number(nid)])
+    const byNar: Record<number, Record<string, CriticismGroup>> = {}
+    for (const r of critRes.rows) {
+      if (!r.say_text) continue
+      const nid = Number(r.narrator_id)
+      const sci = r.scientist_name || 'غير معروف'
+      if (!byNar[nid]) byNar[nid] = {}
+      if (!byNar[nid][sci]) byNar[nid][sci] = { scientist_name: sci, scientist_noun_id: r.scientist_noun_id, entries: [] }
+      byNar[nid][sci].entries.push({ text: r.say_text, garh_label: r.garh_label || null })
     }
+    for (const nid of Object.keys(byNar)) narratorCriticism[Number(nid)] = Object.values(byNar[Number(nid)])
+
+    const seenIr = new Set<string>()
+    for (const r of irRes.rows) {
+      const narratorIds = (r.rwah || '')
+        .trim()
+        .split(/\s+/)
+        .filter(s => /^\d+$/.test(s))
+        .map(s => parseInt(s, 10))
+      const irKey = `${r.relation_id}:${narratorIds.join(',')}`
+      if (seenIr.has(irKey)) continue
+      seenIr.add(irKey)
+      isnadRelations.push({
+        chainId: Number(r.chain_id),
+        relationId: Number(r.relation_id),
+        relationLabel: r.relation_label,
+        narratorIds,
+      })
+    }
+
+    // Keep narrator_relations where both narrators co-occur in at least one chain, prioritizing adjacent links
+    const coOccur = new Set<string>()
+    const adjacent = new Set<string>()
+    for (const c of chains) {
+      const ids = c.narrators.map(n => n.id)
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          coOccur.add(`${ids[i]}-${ids[j]}`)
+          coOccur.add(`${ids[j]}-${ids[i]}`)
+          if (j === i + 1) {
+            adjacent.add(`${ids[i]}-${ids[j]}`)
+            adjacent.add(`${ids[j]}-${ids[i]}`)
+          }
+        }
+      }
+    }
+    narratorRelations = nrRes.rows
+      .filter(r => coOccur.has(`${r.first_id}-${r.second_id}`))
+      .sort((a, b) => Number(adjacent.has(`${b.first_id}-${b.second_id}`)) - Number(adjacent.has(`${a.first_id}-${a.second_id}`)))
+      .slice(0, 20)
+      .map(r => ({
+        firstId: Number(r.first_id),
+        secondId: Number(r.second_id),
+        relationType: Number(r.relation_type),
+        relationLabel: r.relation_label,
+        isSheikh: Boolean(r.is_sheikh),
+        sayText: r.say_text ?? null,
+        scientistName: r.scientist_name ?? null,
+      }))
   }
 
   const displayedPivot = findDisplayedPivot(chains.map(chain => chain.narrators.map(n => n.id)))
@@ -423,7 +508,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   const relatedHadiths = (relatedRes as { rows: Array<{ main_id: number; tarf: string | null; book_title: string }> }).rows
   // Each saying's source is its own link row (keyed by say_id), so a saying can no longer be shown
   // under a book it is not linked to and the same text can no longer print under three books.
-  type SrcRow = { say_id: number; service_main_id: number; book_name: string; part_num: number; page_num: number }
+  type SrcRow = { say_id: number; service_main_id: number; is_book_toc: boolean; book_name: string; part_num: number; page_num: number }
   const sourcesMap = new Map<number, SrcRow>()
   for (const src of (sourcesRes as { rows: SrcRow[] }).rows) {
     sourcesMap.set(Number(src.say_id), src)
@@ -444,6 +529,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
       source_part: src?.part_num != null ? Number(src.part_num) : null,
       source_page: src?.page_num != null ? Number(src.page_num) : null,
       source_content_id: src?.service_main_id != null ? Number(src.service_main_id) : null,
+      source_is_book_toc: Boolean(src?.is_book_toc),
     }
   })
 
@@ -460,16 +546,48 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   for (const col of SERVICE_COLUMNS) {
     if (h[col] === true) hadithServices[col] = true
   }
-  // A commentary section needs texts of its type linked to this hadith; the flag alone can be set
-  // with none (e.g. tafsser, rwah), which left the section showing only its empty state.
-  const linkedTypesRes = await pool.query<{ type_id: number }>(
-    `SELECT DISTINCT type_id FROM hadith_service_links WHERE hadith_id = $1`,
-    [mainId]
-  ).catch(() => ({ rows: [] as Array<{ type_id: number }> }))
+  const rawXmlContent = (h.content as string) || ''
+  const [linkedTypesRes, groupSharhRes] = await Promise.all([
+    pool.query<{ type_id: number }>(
+      `SELECT DISTINCT type_id FROM hadith_service_links WHERE hadith_id = $1`,
+      [mainId]
+    ).catch(() => ({ rows: [] as Array<{ type_id: number }> })),
+    pool.query<{ has_group_sharh: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM takhrij t1
+         JOIN takhrij t2 ON t2.group_id = t1.group_id
+         JOIN hadith_service_links hsl ON hsl.hadith_id = t2.hadith_id AND hsl.type_id = 6
+         WHERE t1.hadith_id = $1
+       ) AS has_group_sharh`,
+      [mainId]
+    ).catch(() => ({ rows: [{ has_group_sharh: false }] })),
+  ])
   const linkedTypes = new Set(linkedTypesRes.rows.map(r => Number(r.type_id)))
+  const hasGroupSharh = Boolean(groupSharhRes.rows[0]?.has_group_sharh)
+
   for (const cfg of INLINE_SERVICE_CONFIGS) {
-    if (cfg.kind === 'commentary' && !linkedTypes.has(cfg.commentaryType!)) delete hadithServices[cfg.key as ServiceKey]
+    if (cfg.kind !== 'commentary') continue
+    const key = cfg.key as ServiceKey
+    if (cfg.commentaryTypes && cfg.commentaryTypes.length > 0) {
+      if (cfg.commentaryTypes.some(t => linkedTypes.has(t))) hadithServices[key] = true
+      else delete hadithServices[key]
+    } else if (cfg.includeGroupFallback && cfg.commentaryType === 6) {
+      if (linkedTypes.has(6) || hasGroupSharh) hadithServices[key] = true
+      else delete hadithServices[key]
+    } else if (cfg.commentaryType != null) {
+      if (linkedTypes.has(cfg.commentaryType)) hadithServices[key] = true
+      else delete hadithServices[key]
+    }
   }
+
+  // XML-backed service sections: التفسير (<آية>), القراءات (<قراءة>), الأماكن والبلدان (<علم_مكان>)
+  if (/<آية[\s>]/.test(rawXmlContent)) hadithServices.tafsser = true
+  else if (!linkedTypes.has(16)) delete hadithServices.tafsser
+
+  if (/<قراءة[\s>]/.test(rawXmlContent)) hadithServices.kerat = true
+  else delete hadithServices.kerat
+
+  if (/<علم_مكان[\s>]/.test(rawXmlContent)) hadithServices.countries = true
 
   const sanadSegments = parseSanadNarratorSegments(h.content as string)
   const sanadNarratorIds = [
@@ -555,6 +673,8 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
         chapterTarget={chapterTarget}
         chains={chains}
         narratorCriticism={narratorCriticism}
+        isnadRelations={isnadRelations}
+        narratorRelations={narratorRelations}
         commonNarrators={commonNarrators}
         sanadSegments={sanadSegmentsHaveNarrators(sanadSegments) ? sanadSegments : undefined}
         sanadNarrators={sanadNarrators}

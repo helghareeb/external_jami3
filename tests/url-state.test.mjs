@@ -54,13 +54,23 @@ test('parseSearchUrl reads supported state and normalizes defaults', () => {
     grade: 'sahih',
     subjectCatId: '3',
     maxDepth: '4',
+    hadithType: '',
     searchScope: 'tarf',
     matchMode: 'any',
+    tashkeel: false,
     bookSource: 'service',
     narratorId: '12',
     narratorName: 'عمر',
     page: 5,
   })
+
+  const withTypeAndTashkeel = parseSearchUrl('q=الحمد&type=MARFU&tashkeel=1')
+  assert.equal(withTypeAndTashkeel.hadithType, 'marfu')
+  assert.equal(withTypeAndTashkeel.tashkeel, true)
+
+  const invalidTypeAndTashkeel = parseSearchUrl('q=الحمد&type=unknown&tashkeel=0')
+  assert.equal(invalidTypeAndTashkeel.hadithType, '')
+  assert.equal(invalidTypeAndTashkeel.tashkeel, false)
 })
 
 test('buildSearchUrl omits defaults and preserves unrelated params', () => {

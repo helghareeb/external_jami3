@@ -102,42 +102,50 @@ export default async function HadithChainsPage({
   if (!hadithRes.rows[0]) notFound()
   const hadith = hadithRes.rows[0]
 
-  // Get group_id for this hadith
+  // Get ALL group_ids for this hadith
   const groupRes = await pool.query<{ group_id: number }>(
-    `SELECT group_id FROM takhrij WHERE hadith_id = $1 LIMIT 1`,
+    `SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
     [hadithId]
   )
-  const groupId = groupRes.rows[0]?.group_id || null
+  const groupIds = groupRes.rows.map(r => Number(r.group_id))
+  const groupId = groupIds[0] || null
 
   let parallels: ParallelHadith[] = []
   let allChainNarrators: ChainNarrator[] = []
 
-  if (groupId) {
-    // Get all parallel hadiths in this group
+  if (groupIds.length > 0) {
+    // Get all parallel hadiths across all matching groups
     const parallelsRes = await pool.query<ParallelHadith>(
-      `SELECT t.hadith_id, t.book_id, b.title AS book_title, b.takhrij_author, b.takhrij_death,
-              h.tarqeem_harf, h.tarqeem_matboa1, jg.grade_hint
-       FROM takhrij t
-       JOIN books b ON b.id = t.book_id
-       JOIN hadith_toc h ON h.main_id = t.hadith_id
-       LEFT JOIN LATERAL (
-         SELECT CASE
-           WHEN say_text ~* 'صحيح' THEN 'صحيح'
-           WHEN say_text ~* 'إسناده حسن|حديث حسن|سنده حسن' AND say_text !~* 'صحيح' THEN 'حسن'
-           WHEN say_text ~* 'ضعيف|منكر|متروك|موضوع' THEN 'ضعيف'
-           ELSE NULL END AS grade_hint
-         FROM hadith_judgments j2
-         WHERE j2.hadith_id = t.hadith_id
-           AND (j2.say_text ~* 'صحيح|إسناده حسن|حديث حسن|سنده حسن|ضعيف|منكر|متروك')
-         ORDER BY CASE
-           WHEN j2.say_text ~* 'صحيح' THEN 1
-           WHEN j2.say_text ~* 'حسن' THEN 2
-           ELSE 3 END
-         LIMIT 1
-       ) jg ON true
-       WHERE t.group_id = $1
-       ORDER BY b.tarteeb, b.id`,
-      [groupId]
+      `SELECT hadith_id, book_id, book_title, takhrij_author, takhrij_death,
+              tarqeem_harf, tarqeem_matboa1, grade_hint
+       FROM (
+         SELECT DISTINCT ON (t.hadith_id)
+                t.hadith_id, t.book_id, b.title AS book_title, b.takhrij_author, b.takhrij_death,
+                b.tarteeb, b.id AS b_id,
+                h.tarqeem_harf, h.tarqeem_matboa1, jg.grade_hint
+         FROM takhrij t
+         JOIN books b ON b.id = t.book_id
+         JOIN hadith_toc h ON h.main_id = t.hadith_id
+         LEFT JOIN LATERAL (
+           SELECT CASE
+             WHEN say_text ~* 'صحيح' THEN 'صحيح'
+             WHEN say_text ~* 'إسناده حسن|حديث حسن|سنده حسن' AND say_text !~* 'صحيح' THEN 'حسن'
+             WHEN say_text ~* 'ضعيف|منكر|متروك|موضوع' THEN 'ضعيف'
+             ELSE NULL END AS grade_hint
+           FROM hadith_judgments j2
+           WHERE j2.hadith_id = t.hadith_id
+             AND (j2.say_text ~* 'صحيح|إسناده حسن|حديث حسن|سنده حسن|ضعيف|منكر|متروك')
+           ORDER BY CASE
+             WHEN j2.say_text ~* 'صحيح' THEN 1
+             WHEN j2.say_text ~* 'حسن' THEN 2
+             ELSE 3 END
+           LIMIT 1
+         ) jg ON true
+         WHERE t.group_id = ANY($1::int[])
+         ORDER BY t.hadith_id, t.group_id
+       ) sub
+       ORDER BY sub.tarteeb, sub.b_id`,
+      [groupIds]
     ).catch(() => ({ rows: [] as ParallelHadith[] }))
     parallels = parallelsRes.rows
 

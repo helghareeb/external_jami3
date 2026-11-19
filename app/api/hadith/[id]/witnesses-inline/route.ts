@@ -11,13 +11,14 @@ export async function GET(
   const hadithId = parseInt(id)
   if (isNaN(hadithId)) return NextResponse.json({ error: 'invalid id' }, { status: 400 })
 
-  const groupRes = await pool.query(
-    `SELECT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL LIMIT 1`,
+  const groupRes = await pool.query<{ group_id: number }>(
+    `SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
     [hadithId]
-  ).catch(() => ({ rows: [] }))
+  ).catch(() => ({ rows: [] as Array<{ group_id: number }> }))
 
-  const groupId = groupRes.rows[0]?.group_id ?? null
-  if (!groupId) return NextResponse.json({ witnesses: [], groupId: null })
+  const groupIds = groupRes.rows.map(r => Number(r.group_id))
+  const groupId = groupIds[0] ?? null
+  if (groupIds.length === 0) return NextResponse.json({ witnesses: [], groupId: null })
 
   const witnessesRes = await pool.query(
     `SELECT DISTINCT ON (COALESCE(comp.id::text, t2.hadith_id::text))
@@ -38,11 +39,11 @@ export async function GET(
      LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = t2.hadith_id
      LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
      LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
-     WHERE t2.group_id = $1 AND t2.hadith_id != $2
+     WHERE t2.group_id = ANY($1::int[]) AND t2.hadith_id != $2
      ORDER BY COALESCE(comp.id::text, t2.hadith_id::text), b.takhrij_death ASC NULLS LAST
      LIMIT 60`,
-    [groupId, hadithId]
+    [groupIds, hadithId]
   ).catch(() => ({ rows: [] }))
 
-  return NextResponse.json({ witnesses: witnessesRes.rows, groupId })
+  return NextResponse.json({ witnesses: witnessesRes.rows, groupId, groupIds })
 }

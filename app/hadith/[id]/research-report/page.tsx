@@ -99,7 +99,9 @@ export default async function ResearchReportPage({
        FROM takhrij t
        JOIN hadith_toc ht ON ht.main_id = t.hadith_id
        JOIN books b ON b.id = ht.book_id
-       WHERE t.group_id = (SELECT group_id FROM takhrij WHERE hadith_id = $1 LIMIT 1)
+       WHERE t.group_id IN (
+         SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL
+       )
          AND ht.main_id != $1
        ORDER BY ht.book_id, b.takhrij_death ASC NULLS LAST
        LIMIT 12`,

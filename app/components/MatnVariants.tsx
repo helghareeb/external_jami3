@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import ReactFlow, { Background, Controls, Handle, Position, type Node, type Edge, type ReactFlowInstance } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { extractMatnForComparison, stripXmlToVerbatim } from '@/lib/hadithText'
+import type { CompoundMatnBookGroup, ParsedCompoundMatn } from '@/lib/compoundMatn'
 import { useTheme } from '@/lib/themeContext'
 import { useFlowTouchLock, FlowTouchToggle } from './FlowTouchLock'
 
@@ -668,7 +669,158 @@ function VersionList({ source, others, chainOnly }: {
   )
 }
 
+// ── المتن الجامع المُحرَّر (من قاعدة الموسوعة) ───────────────────────────────────
+
+function CompoundBookDocs({ groups }: { groups: CompoundMatnBookGroup[] }) {
+  if (groups.length === 0) return null
+  return (
+    <div className="space-y-1.5">
+      {groups.map((grp, gi) => (
+        <div key={`${grp.bookName}-${gi}`} className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="font-semibold text-gray-700">{grp.bookName}:</span>
+          {grp.docs.map(doc => {
+            const num = doc.hadithNum || doc.hadithNumH || doc.hadithNum2
+            return (
+              <a
+                key={doc.mainId}
+                href={`/hadith/${doc.mainId}`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-800 hover:bg-green-100 transition-colors"
+              >
+                {num ? `ح ${num}` : `حديث ${doc.mainId}`}
+                {doc.partNum && doc.pageNum ? (
+                  <span className="text-[10px] text-green-700/70">({doc.partNum}/{doc.pageNum})</span>
+                ) : null}
+              </a>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function CompoundMatnView({ records }: { records: ParsedCompoundMatn[] }) {
+  const [selectedHit, setSelectedHit] = useState<{ recId: number; mmid: string } | null>(() => {
+    for (const r of records) {
+      const firstHit = r.segments.find(s => s.type === 'hit')
+      if (firstHit && firstHit.type === 'hit') return { recId: r.id, mmid: firstHit.mmid }
+    }
+    return null
+  })
+
+  return (
+    <div className="space-y-5" dir="rtl">
+      {records.map((rec, ri) => {
+        const hitSegments = rec.segments.filter((s): s is Extract<typeof s, { type: 'hit' }> => s.type === 'hit')
+        const activeHit =
+          selectedHit && selectedHit.recId === rec.id
+            ? hitSegments.find(h => h.mmid === selectedHit.mmid) ?? null
+            : null
+        const activeSources = activeHit ? (rec.footnotes[activeHit.mmid] || []) : []
+
+        return (
+          <div key={rec.id} className="space-y-3">
+            {records.length > 1 && (
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span className="font-semibold text-gray-700">المتن الجامع ({ri + 1})</span>
+                <span>{hitSegments.length} موضع اختلاف</span>
+              </div>
+            )}
+
+            <div className="rounded-xl border border-border bg-surface px-5 py-4">
+              <p className="font-[Amiri,serif] text-[1.125rem] leading-[2.3] text-gray-900">
+                {rec.segments.map((seg, si) => {
+                  if (seg.type === 'text') return <span key={si}>{seg.text}</span>
+                  const isActive = activeHit?.mmid === seg.mmid
+                  return (
+                    <button
+                      key={`${seg.mmid}-${si}`}
+                      type="button"
+                      onClick={() => setSelectedHit(prev =>
+                        prev?.recId === rec.id && prev.mmid === seg.mmid ? null : { recId: rec.id, mmid: seg.mmid }
+                      )}
+                      title={seg.summaryText || 'انقر لعرض تخريج هذا اللفظ'}
+                      className={`inline mx-0.5 px-1.5 py-0.5 rounded transition-colors cursor-pointer text-[0.94em] ${
+                        isActive
+                          ? 'bg-amber-200/80 text-amber-950 ring-1 ring-amber-400 font-semibold'
+                          : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200/70'
+                      }`}
+                    >
+                      {seg.text}
+                      <sup className="text-[0.65em] text-amber-700 font-sans font-semibold mr-0.5">
+                        {Number(seg.mmid) + 1}
+                      </sup>
+                    </button>
+                  )
+                })}
+              </p>
+
+              {rec.isIdenticalNote && rec.identicalNoteText && (
+                <p className="mt-3 pt-2 border-t border-border text-xs text-green-800 bg-green-50/60 rounded-lg px-3 py-2">
+                  {rec.identicalNoteText}
+                </p>
+              )}
+            </div>
+
+            {activeHit && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-2.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-amber-900">
+                    حاشية الموضع ({Number(activeHit.mmid) + 1}): {activeHit.summaryText || activeHit.text}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHit(null)}
+                    className="text-xs text-gray-500 hover:text-gray-800"
+                  >
+                    إغلاق ×
+                  </button>
+                </div>
+                {activeSources.length > 0 ? (
+                  <CompoundBookDocs groups={activeSources} />
+                ) : activeHit.hids.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 text-xs">
+                    {activeHit.hids.slice(0, 20).map(hid => (
+                      <a
+                        key={hid}
+                        href={`/hadith/${hid}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="px-2 py-0.5 rounded-full bg-white border border-amber-200 text-amber-900 hover:underline"
+                      >
+                        حديث {hid}
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500">لا توجد إحالات مسجلة لهذا الموضع</p>
+                )}
+              </div>
+            )}
+
+            {rec.mainHadiths.length > 0 && (
+              <details className="rounded-xl border border-border bg-surface px-4 py-3">
+                <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-gray-700">
+                  <span>مصادر أصل المتن الجامع ({rec.mainHadiths.reduce((s, g) => s + g.docs.length, 0)})</span>
+                  <span className="text-gray-400">⌄</span>
+                </summary>
+                <div className="mt-3 pt-2 border-t border-border">
+                  <CompoundBookDocs groups={rec.mainHadiths} />
+                </div>
+              </details>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main export ────────────────────────────────────────────────────────────────
+
+type MatnVariantsTab = 'compound' | 'merged' | 'map' | 'full'
 
 export default function MatnVariants({
   hadithId, currentTarf, currentBookTitle, currentDeath,
@@ -680,6 +832,8 @@ export default function MatnVariants({
 }) {
   const [rawParallels, setRawParallels] = useState<RawParallel[]>([])
   const [sourceMatn, setSourceMatn] = useState<string | null>(null)
+  const [compoundRecords, setCompoundRecords] = useState<ParsedCompoundMatn[]>([])
+  const [tab, setTab] = useState<MatnVariantsTab>('merged')
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<number | null>(null)
 
@@ -687,14 +841,19 @@ export default function MatnVariants({
     setLoading(true)
     setRawParallels([])
     setSourceMatn(null)
+    setCompoundRecords([])
 
     Promise.all([
-      fetch(`/api/hadith/${hadithId}/parallel`).then(r => r.json()),
-      fetch(`/api/hadith/${hadithId}/text`).then(r => r.json()),
+      fetch(`/api/hadith/${hadithId}/parallel`).then(r => r.json()).catch(() => ({ parallels: [] })),
+      fetch(`/api/hadith/${hadithId}/text`).then(r => r.json()).catch(() => ({ text: null })),
+      fetch(`/api/hadith/${hadithId}/compound-matn`).then(r => r.json()).catch(() => ({ records: [] })),
     ])
-      .then(([parallelData, textData]) => {
+      .then(([parallelData, textData, compoundData]) => {
+        const recs: ParsedCompoundMatn[] = compoundData.records || []
         setRawParallels(parallelData.parallels || [])
         setSourceMatn(textData.text ?? null)
+        setCompoundRecords(recs)
+        setTab(recs.length > 0 ? 'compound' : 'merged')
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -737,8 +896,69 @@ export default function MatnVariants({
     return <p className="text-xs text-gray-400 py-2">جاري تحميل المتون...</p>
   }
 
-  if (textEntries.length < 2) {
+  if (compoundRecords.length === 0 && textEntries.length < 2) {
     return <p className="text-xs text-gray-400">لا توجد روايات كافية للمقارنة</p>
+  }
+
+  if (compoundRecords.length > 0) {
+    const tabDefs: Array<{ id: MatnVariantsTab; label: string; enabled: boolean }> = [
+      { id: 'compound', label: 'المتن الجامع (الموسوعة)', enabled: true },
+      { id: 'merged', label: 'المتن المُجمَّع', enabled: textEntries.length >= 2 },
+      { id: 'map', label: 'خريطة الاختلافات', enabled: textEntries.length >= 2 && variants.length > 0 },
+      { id: 'full', label: `نصوص الروايات كاملة (${Math.max(0, textEntries.length - 1)})`, enabled: textEntries.length >= 2 },
+    ]
+    const tabs = tabDefs.filter(t => t.enabled)
+
+    return (
+      <div className="space-y-4">
+        <div className="ui-segmented w-fit flex-wrap">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`ui-segmented-item ${tab === t.id ? 'ui-segmented-item-active' : ''}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'compound' && <CompoundMatnView records={compoundRecords} />}
+
+        {tab === 'merged' && textEntries.length >= 2 && (
+          <div>
+            <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+              <h3 className="text-sm font-bold text-gray-700">المتن المُجمَّع</h3>
+              <span className="text-xs text-gray-400">
+                {variants.length} اختلافًا في {textEntries.length - 1} رواية
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              متن هذا الحديث ({currentBookTitle})، وألفاظ الروايات الأخرى في مواضعها — مرّر على أي اختلافٍ لترى ما يقابله في المتن
+            </p>
+            {variants.length === 0
+              ? <p className="text-sm text-gray-500">الروايات متفقة في ألفاظ هذا المتن.</p>
+              : <CompositeMatn source={textEntries[0]} variants={variants} active={active} setActive={setActive} />}
+          </div>
+        )}
+
+        {tab === 'map' && variants.length > 0 && textEntries.length >= 2 && (
+          <div>
+            <h3 className="text-sm font-bold text-gray-700 mb-1">خريطة الاختلافات</h3>
+            <p className="text-xs text-gray-400 mb-3">
+              المتن كاملًا من اليمين إلى اليسار: مواضع الاختلاف مظلَّلة بأرقامها، وتحت كلٍّ منها قراءة الروايات الأخرى لذلك الموضع وكتبها
+            </p>
+            <DiffLegend point />
+            <VariantMap source={textEntries[0]} variants={variants} />
+          </div>
+        )}
+
+        {tab === 'full' && textEntries.length >= 2 && (
+          <VersionList source={textEntries[0]} others={textEntries.slice(1)} chainOnly={chainOnly} />
+        )}
+      </div>
+    )
   }
 
   return (

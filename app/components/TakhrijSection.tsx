@@ -55,10 +55,16 @@ const fetchTakhrij = cache(async (hadithId: number): Promise<{
        h.tarqeem_matboa1,
        jg.grade_hint,
        comp.companion_id,
-       mc.description AS matn_description
+       COALESCE(NULLIF(btrim(mcv.description), ''), mc.description) AS matn_description
      FROM takhrij t
      JOIN hadith_toc h ON h.main_id = t.hadith_id
      JOIN books b ON b.id = t.book_id
+     LEFT JOIN LATERAL (
+       SELECT v.description
+       FROM matn_comparison_hadith_v v
+       WHERE v.master_hadith_id = $2 AND v.slave_hadith_id = t.hadith_id
+       LIMIT 1
+     ) mcv ON true
      LEFT JOIN matn_comparison mc ON
        mc.master_compound_id = ANY($3::int[])
        AND mc.slave_hadith_id = t.hadith_id

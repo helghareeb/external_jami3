@@ -25,6 +25,23 @@ import { useFlowTouchLock, FlowTouchToggle } from './FlowTouchLock'
 import type { Chain, NarratorInChain, CriticismGroup } from './HadithSidebarLayout'
 import { companionTitle } from '@/lib/narratorTitle'
 
+export interface IsnadRelationAlert {
+  chainId: number
+  relationId: number
+  relationLabel: string
+  narratorIds: number[]
+}
+
+export interface NarratorPairRelation {
+  firstId: number
+  secondId: number
+  relationType: number
+  relationLabel: string
+  isSheikh: boolean
+  sayText: string | null
+  scientistName: string | null
+}
+
 interface Narrator {
   id: number
   name: string
@@ -134,6 +151,7 @@ const RAIL_W = 288
 
 function IsnadRailNode({ data }: NodeProps) {
   const nar = data.nar as NarratorInChain
+  const alerts = (data.alerts as string[] | undefined) || []
   const death = deathLabel(nar)
   const hasMeta = nar.is_companion || nar.tabaqa
   return (
@@ -163,6 +181,18 @@ function IsnadRailNode({ data }: NodeProps) {
             </span>
           ) : null}
           {nar.tabaqa && <span className="text-[11px] text-gray-500 font-sans">{nar.tabaqa}</span>}
+        </div>
+      )}
+      {alerts.length > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-1 mt-2">
+          {alerts.map(lbl => (
+            <span
+              key={lbl}
+              className="text-[10px] font-sans font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200"
+            >
+              {lbl}
+            </span>
+          ))}
         </div>
       )}
       <Handle type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-border !border-0" />
@@ -246,15 +276,15 @@ const EDGE_TYPES = { term: TermEdge }
 
 // ─── Single isnad builder: this hadith's chain(s) as a rich vertical flow ───────
 
-function estimateRailHeight(nar: NarratorInChain): number {
-  // Centered, stacked card: name (≤2 lines) · death line · meta line (صحابي / tabaqa).
+function estimateRailHeight(nar: NarratorInChain, hasAlerts = false): number {
+  // Centered, stacked card: name (≤2 lines) · death line · meta line (صحابي / tabaqa) · optional defect pill row.
   const name = nar.abb_name || nar.name || ''
   const nameLines = Math.min(2, Math.max(1, Math.ceil(name.length / 24)))
   const metaLines = nar.is_companion || nar.tabaqa ? 1 : 0
-  return 28 + nameLines * 24 + (deathLabel(nar) ? 18 : 0) + metaLines * 18
+  return 28 + nameLines * 24 + (deathLabel(nar) ? 18 : 0) + metaLines * 18 + (hasAlerts ? 24 : 0)
 }
 
-function buildSingleChain(chains: Chain[], dark: boolean): { nodes: Node[]; edges: Edge[] } {
+function buildSingleChain(chains: Chain[], dark: boolean, narAlertsMap?: Map<number, string[]>): { nodes: Node[]; edges: Edge[] } {
   const nodeMap = new Map<string, Node>()
   const edgeSet = new Set<string>()
   const edges: Edge[] = []
@@ -282,16 +312,17 @@ function buildSingleChain(chains: Chain[], dark: boolean): { nodes: Node[]; edge
     let prevNar: number | null = null
     for (const nar of chain.narrators) {
       const nid = `n-${nar.id}`
+      const alerts = narAlertsMap?.get(nar.id) || []
       if (!nodeMap.has(nid)) {
         nodeMap.set(nid, {
           id: nid,
           type: 'isnadRail',
-          data: { nar },
+          data: { nar, alerts },
           position: { x: 0, y: 0 },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
           width: RAIL_W,
-          height: estimateRailHeight(nar),
+          height: estimateRailHeight(nar, alerts.length > 0),
         })
       }
       const ek = `${prev}->${nid}`
@@ -591,7 +622,19 @@ function buildGraph(chains: ChainRow[], currentHadithId: number, dark: boolean, 
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export default function IsnadTree({ hadithId, chains, narratorCriticism = {} }: { hadithId: number; chains: Chain[]; narratorCriticism?: Record<number, CriticismGroup[]> }) {
+export default function IsnadTree({
+  hadithId,
+  chains,
+  narratorCriticism = {},
+  isnadRelations = [],
+  narratorRelations = [],
+}: {
+  hadithId: number
+  chains: Chain[]
+  narratorCriticism?: Record<number, CriticismGroup[]>
+  isnadRelations?: IsnadRelationAlert[]
+  narratorRelations?: NarratorPairRelation[]
+}) {
   const { theme } = useTheme()
   const dark = theme === 'dark'
   const [mode, setMode] = useState<Mode>('single')
@@ -607,8 +650,26 @@ export default function IsnadTree({ hadithId, chains, narratorCriticism = {} }: 
   const [allChains, setAllChains] = useState<ChainRow[]>([])
   const [tahdethTypes, setTahdethTypes] = useState<Record<number, string>>({})
 
+  const narById = useMemo(() => {
+    const m = new Map<number, NarratorInChain>()
+    for (const c of chains) for (const n of c.narrators) if (!m.has(n.id)) m.set(n.id, n)
+    return m
+  }, [chains])
+
+  const narAlertsMap = useMemo(() => {
+    const m = new Map<number, string[]>()
+    for (const ir of isnadRelations) {
+      for (const nid of ir.narratorIds) {
+        const list = m.get(nid) || []
+        if (!list.includes(ir.relationLabel)) list.push(ir.relationLabel)
+        m.set(nid, list)
+      }
+    }
+    return m
+  }, [isnadRelations])
+
   // Single isnad view — this hadith's chain(s); each link shows its own صيغة (no count).
-  const single = useMemo(() => buildSingleChain(chains, dark), [chains, dark])
+  const single = useMemo(() => buildSingleChain(chains, dark, narAlertsMap), [chains, dark, narAlertsMap])
 
   // Narrator whose critics' sayings are open (set by clicking a narrator; never shown unasked).
   const [picked, setPicked] = useState<{ id: number; name: string; abb_name?: string | null } | null>(null)
@@ -735,6 +796,76 @@ export default function IsnadTree({ hadithId, chains, narratorCriticism = {} }: 
               : 'جميع مسارات الرواية عبر كتب التخريج')
             + (selPath ? ' — مسار محدّد (أزرق) · انقر الخلفية لإلغائه' : ' — انقر على خطٍّ لتظليل مساره كاملاً')}
       </p>
+
+      {(isnadRelations.length > 0 || narratorRelations.length > 0) && (
+        <details className="rounded-xl border border-amber-200/80 bg-amber-50/40 px-3.5 py-2.5 text-xs" open>
+          <summary className="cursor-pointer list-none flex items-center justify-between gap-2 font-semibold text-amber-900">
+            <span>
+              تنبيهات وعلاقات الإسناد ({isnadRelations.length + narratorRelations.length})
+            </span>
+            <span className="text-[11px] font-normal text-amber-700/80">تخريج الموسوعة لعلل السند والسماع</span>
+          </summary>
+          <div className="mt-2.5 space-y-2">
+            {isnadRelations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {isnadRelations.map((ir, idx) => (
+                  <span
+                    key={`${ir.chainId}-${ir.relationId}-${idx}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50/90 px-2.5 py-1 text-[11px] text-red-800"
+                  >
+                    <span className="font-bold">{ir.relationLabel}:</span>
+                    {ir.narratorIds.length > 0 ? (
+                      ir.narratorIds.map((nid, ni) => {
+                        const nar = narById.get(nid)
+                        return (
+                          <span key={nid}>
+                            {ni > 0 && '، '}
+                            <Link href={`/narrator/${nid}`} className="hover:underline font-medium">
+                              {nar?.abb_name || nar?.name || `راوٍ ${nid}`}
+                            </Link>
+                          </span>
+                        )
+                      })
+                    ) : (
+                      <span>في السند</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {narratorRelations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {narratorRelations.map((nr, idx) => {
+                  const first = narById.get(nr.firstId)
+                  const second = narById.get(nr.secondId)
+                  const isPositive = nr.relationType === 7 || nr.relationType === 15 || nr.relationType === 16
+                  return (
+                    <span
+                      key={`${nr.firstId}-${nr.secondId}-${nr.relationType}-${idx}`}
+                      title={nr.sayText ? `${nr.scientistName ? `${nr.scientistName}: ` : ''}${nr.sayText}` : undefined}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] ${
+                        isPositive
+                          ? 'border-green-200 bg-green-50 text-green-800'
+                          : 'border-amber-200 bg-amber-50 text-amber-900'
+                      }`}
+                    >
+                      <span className="font-semibold">{nr.relationLabel}:</span>
+                      <Link href={`/narrator/${nr.firstId}`} className="hover:underline">
+                        {first?.abb_name || first?.name || nr.firstId}
+                      </Link>
+                      <span>←</span>
+                      <Link href={`/narrator/${nr.secondId}`} className="hover:underline">
+                        {second?.abb_name || second?.name || nr.secondId}
+                      </Link>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
       {mode === 'full' && treePhase === 'done' && madar && (
         <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs rounded-lg border border-purple-200 bg-purple-50 px-3 py-2">
