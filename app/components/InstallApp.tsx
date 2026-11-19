@@ -9,6 +9,7 @@
 // phones, and holds the iOS steps sheet; <InstallButton /> is the same action for menus and links.
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { desktopAppReplacesPwa, inDesktopApp } from '@/lib/desktopApps'
+import { inOurApp, isAndroidBrowser } from '@/lib/appContext'
 import { inAndroidApp } from '@/lib/androidApp'
 
 interface InstallPromptEvent extends Event {
@@ -39,8 +40,8 @@ const isIos = () =>
 
 const snapshot = (): Mode => {
   if (installed || standalone()) return 'none'
-  if (deferred) return 'prompt'
-  return isIos() ? 'ios' : 'none'
+  if (deferred || isAndroidBrowser()) return 'prompt'   // on Android the button leads to the Android app (/apps)
+  return 'none'                                          // iPhone/iPad: no app offered there yet
 }
 const useMode = () => useSyncExternalStore(subscribe, snapshot, () => 'none' as Mode)
 const useSheet = () => useSyncExternalStore(subscribe, () => iosSheet, () => false)
@@ -69,8 +70,9 @@ export const canPrompt = () => !!deferred
  * when the app is first opened from the home screen.
  */
 export async function installAndDownload() {
-  if (isIos() && !standalone()) { iosSheet = true; emit(); return }
-  if (deferred) await install()
+  // Outside our apps on a computer or an Android phone: the apps page (Windows, macOS, Linux, Android installers).
+  // Inside an app: the encyclopedia's download screen.
+  if (!inOurApp()) { location.assign(isAndroidBrowser() ? '/apps#android' : '/apps'); return }
   if (location.pathname !== '/offline') location.assign('/offline?start=1')
 }
 export { install as installApp }
