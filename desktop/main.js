@@ -110,6 +110,8 @@ function setupUpdates() {
   if (!app.isPackaged) return
   // macOS only updates itself when the app is signed; until then the site tells Mac users about new versions.
   if (process.platform === 'darwin') return
+  // The Microsoft Store version is updated by the Store
+  if (process.windowsStore) return
   const { autoUpdater } = require('electron-updater')
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true

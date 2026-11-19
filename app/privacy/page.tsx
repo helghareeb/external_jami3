@@ -4,7 +4,7 @@ export const dynamic = 'force-static'
 
 export const metadata: Metadata = {
   title: 'سياسة الخصوصية وحذف الحساب — الجامع',
-  description: 'سياسة الخصوصية وحماية البيانات وآلية حذف الحساب في موسوعة الحديث النبوي الشريف (hadith.dev) وتطبيق الجامع للأندرويد.',
+  description: 'سياسة الخصوصية وحماية البيانات وآلية حذف الحساب في موسوعة الحديث النبوي الشريف (hadith.dev) وتطبيقات الجامع للأندرويد وسطح المكتب.',
 }
 
 export default function PrivacyPage() {
@@ -14,6 +14,7 @@ export default function PrivacyPage() {
         <h1 className="text-2xl sm:text-3xl font-bold text-green-900">سياسة الخصوصية وحذف الحساب</h1>
         <p className="text-sm text-muted">
           موسوعة الحديث النبوي الشريف — <bdi dir="ltr">hadith.dev</bdi> وتطبيق «الجامع» للأندرويد (<bdi dir="ltr">dev.hadith.dev</bdi> / <bdi dir="ltr">dev.hadith.app</bdi>)
+          وتطبيقه لسطح المكتب (ويندوز وماك ولينكس، ومنه نسخة متجر مايكروسوفت)
         </p>
         <p className="text-xs text-muted">آخر تحديث: ١٩ نوفمبر ٢٠٢٦</p>
       </header>
@@ -53,7 +54,8 @@ export default function PrivacyPage() {
         <p>
           عند تحميل نسخة الموسوعة للعمل دون إنترنت عبر صفحة{' '}
           <a href="/offline" className="text-green-800 underline underline-offset-2">الجامع دون إنترنت</a>،
-          تُحفظ قاعدة البيانات محليًا على جهازك فقط. يمكنك حذفها في أي وقت من الصفحة نفسها أو عبر مسح بيانات التطبيق من إعدادات الجهاز.
+          تُحفظ قاعدة البيانات محليًا على جهازك فقط. يمكنك حذفها في أي وقت من الصفحة نفسها أو عبر مسح بيانات التطبيق من إعدادات الجهاز،
+          وفي تطبيق سطح المكتب بإزالة التطبيق وحذف مجلده. تُنزَّل الملفات وتحديثات التطبيقات من <bdi dir="ltr">files.hadith.dev</bdi> لإيصالها فقط.
         </p>
       </section>
 
@@ -70,7 +72,9 @@ export default function PrivacyPage() {
           </li>
         </ol>
         <p className="text-muted">
-          إن تعذّر عليك الوصول إلى بريدك الإلكتروني أو رغبت في طلب حذف يدوي، تواصل معنا عبر واتساب:{' '}
+          إن تعذّر عليك الوصول إلى بريدك الإلكتروني أو رغبت في طلب حذف يدوي، راسلنا على{' '}
+          <a href="mailto:support@hadith.dev" className="underline underline-offset-2" dir="ltr">support@hadith.dev</a>{' '}
+          أو تواصل معنا عبر واتساب:{' '}
           <a href="https://wa.me/61426047327" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" dir="ltr">
             +61 426 047 327
           </a>.
@@ -80,7 +84,7 @@ export default function PrivacyPage() {
       <section dir="ltr" lang="en" className="ui-card rounded-2xl p-5 space-y-3 text-sm leading-relaxed">
         <h2 className="text-base font-bold text-green-900">English Summary (Privacy Policy &amp; Account Deletion)</h2>
         <p>
-          <strong>Al-Jami&apos; — Hadith Encyclopedia</strong> (<code>hadith.dev</code> / Android package <code>dev.hadith.app</code>)
+          <strong>Al-Jami&apos; — Hadith Encyclopedia</strong> (<code>hadith.dev</code> / Android package <code>dev.hadith.app</code> / desktop app for Windows, macOS and Linux, including the Microsoft Store version)
           provides full access to classical hadith collections without requiring an account, with zero ads and zero third-party ad/analytics SDKs.
         </p>
         <ul className="list-disc pl-5 space-y-1.5">
@@ -88,10 +92,10 @@ export default function PrivacyPage() {
             <strong>Optional Account Data:</strong> If you sign in at <code>/login</code>, we collect only your email address for passwordless one-time login links/codes, an authentication session cookie, and optional user-created library data (collections, notes, highlights, and MCP API/OAuth tokens). Data is transmitted exclusively over HTTPS.
           </li>
           <li>
-            <strong>Offline Storage:</strong> Optional offline database files downloaded via <code>/offline</code> are stored locally on your device and can be deleted anytime from <code>/offline</code> or Android App Settings.
+            <strong>Offline Storage:</strong> Optional offline database files downloaded via <code>/offline</code> are stored locally on your device and can be deleted anytime from <code>/offline</code>, Android App Settings, or by uninstalling the desktop app and removing its folder. Files and app updates are downloaded from <code>files.hadith.dev</code> only to deliver them.
           </li>
           <li>
-            <strong>Immediate Account &amp; Data Deletion:</strong> Signed-in users can permanently delete their account and all associated server data at any time in the app or on the web via <a href="/account" className="text-green-800 underline"><code>https://hadith.dev/account</code></a> (&ldquo;حذف الحساب نهائيًا&rdquo;). Deleting an account immediately and permanently erases the email address, active sessions, MCP tokens, collections, notes, highlights, and account usage records. For manual deletion assistance, contact support via WhatsApp at <code>+61 426 047 327</code>.
+            <strong>Immediate Account &amp; Data Deletion:</strong> Signed-in users can permanently delete their account and all associated server data at any time in the app or on the web via <a href="/account" className="text-green-800 underline"><code>https://hadith.dev/account</code></a> (&ldquo;حذف الحساب نهائيًا&rdquo;). Deleting an account immediately and permanently erases the email address, active sessions, MCP tokens, collections, notes, highlights, and account usage records. For manual deletion assistance, email <a href="mailto:support@hadith.dev" className="text-green-800 underline">support@hadith.dev</a> or contact support via WhatsApp at <code>+61 426 047 327</code>.
           </li>
         </ul>
       </section>

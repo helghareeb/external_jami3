@@ -30,6 +30,19 @@ nsis:
   shortcutName: الجامع — hadith.dev
   deleteAppDataOnUninstall: false   # keeps the downloaded database if the app is reinstalled
 
+# Microsoft Store package (npm run build:store → .appx): identity from Partner Center (docs/desktop.md, product
+# 9N4K0S7PR212). Microsoft signs it on submission. The Store updates it, so its own updater is off (main.js).
+appx:
+  identityName: Hadith.dev.301807AF58428
+  publisher: CN=1158820C-79CC-43D8-A05D-31DB3A1E5674
+  publisherDisplayName: Hadith.dev
+  displayName: الجامع موسوعة الحديث
+  applicationId: Hadith
+  backgroundColor: "#103D2E"
+  languages: [ar-SA, en-US]
+  showNameOnTiles: true
+  artifactName: hadith-${version}-store-${arch}.${ext}
+
 mac:
   target:
     - target: dmg
