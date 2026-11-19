@@ -64,3 +64,22 @@ Data editions are separate: publishing a new offline edition (publishing.md) nee
   notarization credentials as secrets — see `.claude/skills/electron-builder/references/code-signing.md` — and
   remove `identity: null` from `electron-builder.yml`. Then macOS updates itself like the others.
 - **Windows signing** (optional): Azure Trusted Signing removes the SmartScreen warning; same reference.
+
+## Microsoft Store (v2)
+
+Planned for the offline version (stage 2): Store policy rejects apps that are mainly a website in a window.
+Account: Partner Center, publisher **Hadith.dev** (set up 2026-11-19). Product reserved as an MSIX app:
+
+| Value | |
+|---|---|
+| Name reserved | الجامع موسوعة الحديث |
+| Store ID | `9N4K0S7PR212` |
+| Package/Identity/Name | `Hadith.dev.301807AF58428` |
+| Package/Identity/Publisher | `CN=1158820C-79CC-43D8-A05D-31DB3A1E5674` |
+| PublisherDisplayName | `Hadith.dev` |
+| Package Family Name | `Hadith.dev.301807AF58428_5gn76ewfqd8e4` |
+
+To do for v2: an `appx` target in `electron-builder.yml` with these values (identityName, publisher,
+publisherDisplayName, languages ar-SA + en-US); turn electron-updater off in the Store build (`process.windowsStore`),
+since the Store updates it; listing text, screenshots, Store logos, age rating, privacy policy page, and the
+`runFullTrust` justification; then the upload step in the release workflow. Microsoft signs the package.
