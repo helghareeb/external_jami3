@@ -53,7 +53,7 @@ export default function PrivacyPage() {
         <h2 className="text-base font-bold text-green-900">٤. بيانات العمل دون إنترنت على الجهاز</h2>
         <p>
           عند تحميل نسخة الموسوعة للعمل دون إنترنت عبر صفحة{' '}
-          <a href="/offline" className="text-green-800 underline underline-offset-2">الجامع دون إنترنت</a>،
+          <a href="/database" className="text-green-800 underline underline-offset-2">قاعدة البيانات</a>،
           تُحفظ قاعدة البيانات محليًا على جهازك فقط. يمكنك حذفها في أي وقت من الصفحة نفسها أو عبر مسح بيانات التطبيق من إعدادات الجهاز،
           وفي تطبيق سطح المكتب بإزالة التطبيق وحذف مجلده. تُنزَّل الملفات وتحديثات التطبيقات من <bdi dir="ltr">files.hadith.dev</bdi> لإيصالها فقط.
         </p>

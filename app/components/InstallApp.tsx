@@ -71,9 +71,9 @@ export const canPrompt = () => !!deferred
  */
 export async function installAndDownload() {
   // Outside our apps on a computer or an Android phone: the apps page (Windows, macOS, Linux, Android installers).
-  // Inside an app: the encyclopedia's download screen.
+  // Inside an app: «قاعدة البيانات», where the database is downloaded.
   if (!inOurApp()) { location.assign(isAndroidBrowser() ? '/apps#android' : '/apps'); return }
-  if (location.pathname !== '/offline') location.assign('/offline?start=1')
+  if (location.pathname !== '/database') location.assign('/database')
 }
 export { install as installApp }
 

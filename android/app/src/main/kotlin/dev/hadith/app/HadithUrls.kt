@@ -10,7 +10,7 @@ object HadithUrls {
     const val SEARCH_URL = "$BASE_URL/search"
     const val BOOKS_URL = "$BASE_URL/books"
     const val NARRATORS_URL = "$BASE_URL/narrators"
-    const val OFFLINE_URL = "$BASE_URL/offline"
+    const val OFFLINE_URL = "$BASE_URL/database"
     const val SAVED_URL = "$BASE_URL/saved"
 
     private val SITE_HOSTS = setOf("hadith.dev", "www.hadith.dev")

@@ -11,7 +11,7 @@
 | `android/app/src/main/kotlin/dev/hadith/app/MainActivity.kt` | WebView configuration (Service Worker + DOM/OPFS storage + cookies), edge-to-edge & IME keyboard insets, Material 3 bottom nav, "المزيد" bottom sheet, pull-to-refresh, offline retry overlay, fullscreen video, and file chooser |
 | `android/app/src/main/kotlin/dev/hadith/app/HadithUrls.kt` | Pure URL routing, download/graph route detection, bottom tab mapping, and deep-link sanitization |
 | `android/app/src/main/kotlin/dev/hadith/app/HadithJsBridge.kt` | `window.hadithAndroid` bridge (`isAndroid`, `getVersionName`, `getVersionCode`, `share`, `copyText`, `setKeepScreenOn`, `onThemeChanged`), restricted to `https://hadith.dev` / `www.hadith.dev` |
-| `android/app/src/main/res/xml/shortcuts.xml` | Launcher long-press shortcuts (`/search`, `/books`, `/narrators`, `/offline`) |
+| `android/app/src/main/res/xml/shortcuts.xml` | Launcher long-press shortcuts (`/search`, `/books`, `/narrators`, `/database`) |
 | `android/app/src/test/kotlin/dev/hadith/app/HadithUrlsTest.kt` | JVM unit tests for URL validation, download routing, graph detection, tab mapping, and deep-link sanitization |
 | `android/scripts/stage-release.mjs` | Stages `out/android/hadith-<version>-android.apk` and `out/android/latest.json` (with size & SHA-256) for `/offline` |
 | `app/offline/AndroidApp.tsx`, `lib/androidApp.ts` | «الجامع للأندرويد» download/update section on `/offline` fed by `https://files.hadith.dev/android/latest.json` |

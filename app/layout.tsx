@@ -10,6 +10,7 @@ import InstallApp from './components/InstallApp'
 import DesktopUpgrade from './components/DesktopUpgrade'
 import AppNavBar from './components/AppNavBar'
 import OfflineOffer from './components/OfflineOffer'
+import OfflineFooterLink from './components/OfflineFooterLink'
 import LibraryImport from './components/LibraryImport'
 import { NumberingProvider } from '@/lib/numberingContext'
 import { NumeralProvider } from '@/lib/numeralContext'
@@ -83,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </a>
               </p>
               <div className="font-sans text-xs mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <a href="/apps" className="inline-flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80">تطبيقات الجامع (تعمل دون إنترنت)</a>
+                <OfflineFooterLink />
                 <a href="/privacy" className="inline-flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80">سياسة الخصوصية وحذف الحساب</a>
               </div>
             </div>

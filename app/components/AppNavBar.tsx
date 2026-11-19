@@ -264,6 +264,10 @@ function Bar() {
             <path d="M12 5v14M5 12h14" />
           </Btn>
         </div>
+        <a href="/database" title="قاعدة البيانات (العمل دون إنترنت)"
+          className="shrink-0 self-center flex items-center gap-1 h-8 px-2 rounded-md text-[#E6C77A] hover:bg-white/10 hover:text-[#FFFDF7] transition-colors whitespace-nowrap">
+          قاعدة البيانات
+        </a>
         <Btn label={copied ? 'نُسخ الرابط' : 'نسخ رابط الصفحة'} onClick={copy} text={copied ? 'نُسخ ✓' : 'نسخ الرابط'}>
           <path d="M9.5 14.5l5-5" /><path d="M8 17l-1.4 1.4a3 3 0 0 1-4.2-4.2L5.6 11a3 3 0 0 1 4.2 0" /><path d="M16 7l1.4-1.4a3 3 0 0 1 4.2 4.2L18.4 13a3 3 0 0 1-4.2 0" />
         </Btn>

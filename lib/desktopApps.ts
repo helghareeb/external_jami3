@@ -18,7 +18,11 @@ declare global {
   interface Window { hadithDesktop?: { isDesktop: boolean; platform: string; version: string | null } }
 }
 
-export const inDesktopApp = () => typeof window !== 'undefined' && !!window.hadithDesktop?.isDesktop
+export const inDesktopApp = () => {
+  if (typeof window === 'undefined') return false
+  if (window.hadithDesktop?.isDesktop) return true
+  try { return !!(window.top as Window | null)?.hadithDesktop?.isDesktop } catch { return false }
+}
 
 export function detectOs(): DesktopOs {
   if (typeof navigator === 'undefined') return 'other'

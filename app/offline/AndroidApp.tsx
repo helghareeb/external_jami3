@@ -55,7 +55,7 @@ export default function AndroidApp() {
       {latest === 'none' ? (
         <>
           <p className="text-sm text-muted mt-1">تطبيق أندرويد مستقل قريبًا: يُثبَّت على هاتفك مباشرة ويعمل دون إنترنت.</p>
-          <div className="mt-3 text-muted" aria-hidden="true">
+          <div className="mt-3" aria-hidden="true">
             <AndroidIcon className="w-6 h-6" />
           </div>
         </>
@@ -63,7 +63,7 @@ export default function AndroidApp() {
         <>
           <div className={'mt-3 rounded-xl border p-3 ' + (mine ? 'border-primary bg-primary-soft' : 'border-border')}>
             <p className="font-bold text-sm flex items-center gap-2">
-              <AndroidIcon className={'w-5 h-5 shrink-0 ' + (mine ? 'text-primary' : 'text-muted')} />
+              <AndroidIcon className="w-5 h-5 shrink-0" />
               <span>أندرويد (<bdi dir="ltr">APK</bdi>)</span>
               {mine && <span className="text-xs text-muted font-normal">— جهازك</span>}
             </p>

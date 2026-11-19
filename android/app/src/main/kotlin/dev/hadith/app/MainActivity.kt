@@ -19,6 +19,7 @@ import android.os.Looper
 import android.os.Message
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ServiceWorkerController
 import android.webkit.URLUtil
 import android.webkit.ValueCallback
@@ -299,6 +300,20 @@ class MainActivity : AppCompatActivity() {
                 if (HadithUrls.isInternalSiteUrl(url)) {
                     injectThemeObserver()
                 }
+            }
+
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                // The page's renderer crashed or the system reclaimed its memory (seen while a page with
+                // the offline download was being left). Unhandled, that closes the whole app: open the
+                // same page afresh instead, where an unfinished download carries on by itself.
+                if (view !== binding.webView) return false
+                val url = view.url?.takeIf { HadithUrls.isInternalSiteUrl(it) } ?: HadithUrls.BASE_URL
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, url.toUri(), this@MainActivity, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                )
+                finish()
+                return true
             }
 
             override fun onReceivedError(

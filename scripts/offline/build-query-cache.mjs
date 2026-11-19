@@ -63,7 +63,7 @@ const pages = []
     if (statSync(p).isDirectory()) walk(p)
     else if (name === 'page.tsx') {
       const route = '/' + relative(join(ROOT, 'app'), d).split(sep).filter(s => s && !/^\(.*\)$/.test(s)).join('/')
-      if (!route.includes('[') && !/^\/(account|admin|login|library|oauth|mcp|offline)(\/|$)/.test(route)) pages.push(route)
+      if (!route.includes('[') && !/^\/(account|admin|login|library|oauth|mcp|offline|database)(\/|$)/.test(route)) pages.push(route)
     }
   }
 })(join(ROOT, 'app'))

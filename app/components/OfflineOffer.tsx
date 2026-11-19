@@ -1,8 +1,8 @@
 'use client'
 
-// In the installed app: the offer to download the encyclopedia for use without internet — one button
-// that opens /offline, where the download runs with its progress bar in view — and while it
-// downloads, a small progress pill on every page (tapping it opens /offline with the details).
+// In the installed app: the offer to download the database for use without internet — one button that
+// opens «قاعدة البيانات» (/database), where the download runs with its progress bar in view — and while
+// it downloads, a small progress pill on every page (tapping it opens /database with the details).
 // Once the data is on the device, it asks the service worker to refresh its copy of the offline
 // reader, so the reader matches the site after each release, and when a newer edition of the data
 // is published (a different manifest version or checksum) it asks the reader to update — on any
@@ -50,7 +50,7 @@ export default function OfflineOffer() {
     refreshOfflineStatus().then(status => {
       if (status?.ready) {
         // Bring the offline build up to date, unless this page itself came from the device
-        if (pathname !== '/offline' && !('__OFFLINE_TARGET' in window)) navigator.serviceWorker?.ready.then(r => r.active?.postMessage({ type: 'cache-offline-shell' })).catch(() => {})
+        if (pathname !== '/offline' && pathname !== '/database' && !('__OFFLINE_TARGET' in window)) navigator.serviceWorker?.ready.then(r => r.active?.postMessage({ type: 'cache-offline-shell' })).catch(() => {})
         // A newer edition of the data published since this device downloaded its copy?
         if (navigator.onLine) fetchOfflineManifest().then(m => {
           if (!m || !status.manifest) return
@@ -72,17 +72,17 @@ export default function OfflineOffer() {
     })
   }, [])
 
-  if (!eligible || pathname === '/offline') return null
+  if (!eligible || pathname === '/offline' || pathname === '/database') return null
   const busy = s.phase === 'download' || s.phase === 'import'
 
   if (busy) {
     const p = s.total > 0 ? Math.floor((s.done / s.total) * 100) : 0
     return (
-      <a href="/offline" aria-label="تقدّم التحميل للعمل دون إنترنت"
+      <a href="/database" aria-label="تقدّم تحميل قاعدة البيانات"
         className="fixed z-[60] left-3 rounded-full bg-[#0F3D2E] text-[#F8F1E4] shadow-xl border border-[#C9A96B]/40 pl-4 pr-2 py-2 flex items-center gap-2 font-sans text-sm"
         style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
         <Ring p={p} />
-        {s.phase === 'download' ? 'تحميل الجامع' : 'تجهيز البيانات'} {p.toLocaleString('ar-EG')}٪
+        {s.phase === 'download' ? 'تحميل قاعدة البيانات' : 'تجهيز قاعدة البيانات'} {p.toLocaleString('ar-EG')}٪
       </a>
     )
   }
@@ -92,22 +92,22 @@ export default function OfflineOffer() {
       setUpdate(false)
       try { localStorage.setItem(UPDATE_DISMISS_KEY, `${manifest.version}|${Date.now()}`) } catch {}
     }
-    // Started here, followed on /offline (a client-side move, so the download carries on)
-    const go = () => { setUpdate(false); startOfflineDownload(); router.push('/offline') }
+    // Started here, followed on /database (a client-side move, so the download carries on)
+    const go = () => { setUpdate(false); startOfflineDownload(); router.push('/database') }
     return (
-      <div role="dialog" aria-label="تحديث بيانات الجامع على جهازك"
+      <div role="dialog" aria-label="تحديث قاعدة البيانات على جهازك"
         className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"
         style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-        <p className="font-bold">تحديث متاح لنسخة الجامع على جهازك</p>
+        <p className="font-bold">تحديث متاح لقاعدة البيانات</p>
         <p className="text-xs opacity-80 leading-relaxed mt-1">
-          صدر إصدار أحدث من البيانات ({manifest.version})، فحدِّث نسختك ليبقى ما تقرؤه دون إنترنت مطابقًا للموقع.
+          صدر إصدار أحدث من قاعدة البيانات ({manifest.version})، فحدِّث نسختك ليبقى ما تقرؤه دون إنترنت مطابقًا للموقع.
           {' '}حجم التحديث {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).
         </p>
         <div className="flex items-center gap-2 mt-3">
           <button type="button" onClick={go} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
             تحديث الآن
           </button>
-          <a href="/offline" className="text-sm underline underline-offset-2 opacity-90">التفاصيل</a>
+          <a href="/database" className="text-sm underline underline-offset-2 opacity-90">التفاصيل</a>
           <button type="button" onClick={later} className="mr-auto text-sm opacity-70 hover:opacity-100">ليس الآن</button>
         </div>
       </div>
@@ -121,24 +121,24 @@ export default function OfflineOffer() {
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())) } catch {}
   }
 
-  // In an installed native app (desktop or Android) «الجامع» is already installed: only download the encyclopedia
+  // In an installed native app (desktop or Android) «الجامع» is already installed: only the database to download
   const desk = inDesktopApp() || inAndroidApp()
   return (
-    <div role="dialog" aria-label="استخدم الجامع دون إنترنت"
+    <div role="dialog" aria-label="تحميل قاعدة البيانات للعمل دون إنترنت"
       className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"
       style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-      <p className="font-bold">{resuming ? 'أكمل تحميل الجامع' : desk ? 'شغّل الجامع دون إنترنت' : 'استخدم الجامع دون إنترنت'}</p>
+      <p className="font-bold">{resuming ? 'أكمل تحميل قاعدة البيانات' : 'تحميل قاعدة البيانات للعمل دون إنترنت'}</p>
       <p className="text-xs opacity-80 leading-relaxed mt-1">
         {resuming
-          ? `تمّ تحميل ${formatBytes(s.status!.stagedBytes)}، ويكمل من حيث توقّف.`
+          ? `تمّ تحميل ${formatBytes(s.status!.stagedBytes)}، ويكمل التحميل من حيث توقّف.`
           : desk
-            ? 'حمّل الموسوعة كاملة إلى التطبيق مرة واحدة، فيعمل كله بلا اتصال.'
-            : 'حمّل الموسوعة كاملة على جهازك مرة واحدة، فيعمل الموقع كله بلا اتصال.'}
-        {manifest && <> حجم التحميل {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).</>}
+            ? 'التطبيق مثبّت لديك. حمّل قاعدة بيانات الموسوعة مرة واحدة ليعمل الجامع كاملًا دون اتصال بالإنترنت.'
+            : 'حمّل قاعدة بيانات الموسوعة على جهازك مرة واحدة ليعمل الجامع كاملًا دون اتصال بالإنترنت.'}
+        {manifest && <> حجم قاعدة البيانات {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).</>}
       </p>
       <div className="flex items-center gap-2 mt-3">
-        {/* One way in: the download itself starts on /offline, where its progress is shown in full */}
-        <a href="/offline" onClick={() => setOffer(false)} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
+        {/* One way in: the download itself starts on /database, where its progress is shown in full */}
+        <a href="/database" onClick={() => setOffer(false)} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
           {resuming ? 'متابعة تحميل قاعدة البيانات' : 'تحميل قاعدة البيانات'}
         </a>
         <button type="button" onClick={dismiss} className="mr-auto text-sm opacity-70 hover:opacity-100">ليس الآن</button>

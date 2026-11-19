@@ -66,7 +66,7 @@ const PAGES: Record<string, string> = {
   '/hadiths/advanced-research': 'البحث المتقدم', '/narrators/chain-filter': 'تصفية الرواة بالسند', '/mcp': 'خادم MCP',
   '/authors': 'المصنّفون', '/indexes': 'الفهارس', '/sections': 'الأبواب', '/matn-compare': 'مقارنة المتون', '/asaneed': 'الأسانيد',
   '/hadith': 'الأحاديث', '/narrator': 'تراجم الرواة', '/scholar': 'العلماء (صفحاتهم)', '/service-content': 'محتوى الخدمات',
-  '/hadiths': 'الأحاديث', '/offline': 'دون اتصال', '/oauth': 'الربط (OAuth)', '/unique-hadiths': 'الأحاديث المتفردة', '/narrator-types': 'أنواع الرواة', '/musnad-musannaf': 'المسانيد والمصنفات',
+  '/hadiths': 'الأحاديث', '/offline': 'دون اتصال', '/database': 'قاعدة البيانات', '/apps': 'تطبيقات الجامع', '/oauth': 'الربط (OAuth)', '/unique-hadiths': 'الأحاديث المتفردة', '/narrator-types': 'أنواع الرواة', '/musnad-musannaf': 'المسانيد والمصنفات',
 }
 
 /** Ids in the pages' addresses, to look up their names (hadith, narrators, books, topics). */

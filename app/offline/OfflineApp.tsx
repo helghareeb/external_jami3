@@ -4,9 +4,11 @@
 // this reads the address the reader asked for (/hadith/123, /narrators/network, /search?q=…). Once
 // the encyclopedia is on the device it loads the offline build of the site (public/offline/app,
 // built by scripts/offline/build-offline-app.mjs), which renders that very page with the site's own
-// code against the device's copy of the database. /offline itself is the encyclopedia's download screen, used
-// inside our apps (desktop app, Android app, and the browser app for those who installed it before). The
-// installers are on /apps: an ordinary browser is sent there, unless it already holds a copy to manage.
+// code against the device's copy of the database. The database's download screen is «قاعدة البيانات»
+// (/database, app/database/), used inside our apps (desktop app, Android app, and the browser app for those
+// who installed it before): online, /offline in an app moves there; without a connection this page shows it
+// for both addresses. The installers are on /apps: an ordinary browser is sent there, unless it already
+// holds a copy to manage.
 import { useEffect, useRef, useState } from 'react'
 import OfflineManager from './OfflineManager'
 import AndroidApp from './AndroidApp'
@@ -32,9 +34,10 @@ export default function OfflineApp() {
     setTarget(t)
     const w = whereAmI()
     setWhere(w)
+    // Inside an app, online: the download screen has its own page, «قاعدة البيانات»
+    if (isOfflinePage(t) && w !== 'browser' && navigator.onLine) { location.replace('/database'); return }
     refreshOfflineStatus().then(st => {
-      const downloadPage = t === '/offline' || t.startsWith('/offline?')
-      const go = downloadPage && w === 'browser' && navigator.onLine && !st?.ready && !(st && st.staged > 0)
+      const go = isOfflinePage(t) && w === 'browser' && navigator.onLine && !st?.ready && !(st && st.staged > 0)
       setToApps(go)
       if (go) location.replace('/apps')
     })
@@ -42,11 +45,12 @@ export default function OfflineApp() {
 
   if (!target) return <Loading />
   const online = typeof navigator !== 'undefined' && navigator.onLine
-  if (target === '/offline' || target.startsWith('/offline?')) {
+  if (isOfflinePage(target) || isDatabasePage(target)) {
     if (toApps !== false) return <Loading />
     return (
       <div className="max-w-4xl mx-auto font-sans">
         <OfflineBar online={online} />
+        <h1 className="text-2xl font-bold text-green-900 mb-4">قاعدة البيانات</h1>
         <OfflineManager />
         {where === 'android-app' && <AndroidApp />}
       </div>
@@ -106,11 +110,14 @@ const Loading = ({ label }: { label?: string }) => (
     {label && <span className="text-sm text-muted">{label}</span>}
   </div>
 )
+const isOfflinePage = (t: string) => t === '/offline' || t.startsWith('/offline?')
+const isDatabasePage = (t: string) => t === '/database' || t.startsWith('/database?')
+
 const NotDownloaded = () => (
   <div className="max-w-4xl mx-auto space-y-4 font-sans">
     <Panel>
       <p className="font-bold text-green-900">لا يوجد اتصال بالإنترنت</p>
-      <p className="text-sm text-muted mt-1">لم تُحمَّل نسخة الجامع على هذا الجهاز بعد. عند عودة الاتصال حمّلها لتعمل دون إنترنت.</p>
+      <p className="text-sm text-muted mt-1">لم تُحمَّل قاعدة البيانات على هذا الجهاز بعد. عند عودة الاتصال حمّلها لتعمل دون إنترنت.</p>
     </Panel>
     <OfflineManager />
   </div>

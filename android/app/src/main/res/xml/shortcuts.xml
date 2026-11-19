@@ -40,7 +40,7 @@
         android:shortcutShortLabel="@string/shortcut_offline">
         <intent
             android:action="android.intent.action.VIEW"
-            android:data="https://hadith.dev/offline"
+            android:data="https://hadith.dev/database"
             android:targetClass="dev.hadith.app.MainActivity"
             android:targetPackage="dev.hadith.app" />
     </shortcut>

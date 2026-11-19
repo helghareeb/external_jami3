@@ -1,21 +1,14 @@
 'use client'
 
-// «الجامع دون إنترنت»: the download screen. One button fetches the whole encyclopedia (every book,
-// commentary, narrator biography, isnad and the Quran) onto the device; the bar shows the download
-// and then the unpacking, and a cut connection resumes from the last finished part.
+// «قاعدة البيانات»: the offline database download screen inside the native Desktop and Android apps
+// (or for managing previously cached offline data). One button fetches the whole encyclopedia (every
+// book, commentary, narrator biography, isnad and the Quran) onto the device; the bar shows the
+// download and then the unpacking, and a cut connection resumes from the last finished part.
 import { useEffect, useState } from 'react'
 import {
   fetchOfflineManifest, formatBytes, offlineSupported, pauseOfflineDownload, refreshOfflineStatus,
   removeOfflineData, startOfflineDownload, useOfflineState, type OfflineManifest,
 } from '@/lib/offline/client'
-import { canPrompt, installApp } from '@/app/components/InstallApp'
-import { inDesktopApp } from '@/lib/desktopApps'
-
-// One step: install the app where the browser offers it, and start the download
-const installAndStart = () => {
-  if (canPrompt()) installApp()
-  startOfflineDownload()
-}
 
 const pct = (done: number, total: number) => (total > 0 ? Math.min(100, Math.floor((done / total) * 100)) : 0)
 const ar = (n: number) => n.toLocaleString('ar-EG')
@@ -34,9 +27,6 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
   const [manifest, setManifest] = useState<OfflineManifest | null>(null)
   const [online, setOnline] = useState(true)
   const [confirmRemove, setConfirmRemove] = useState(false)
-  // In the desktop app «الجامع» is already installed: this card only downloads the encyclopedia
-  const [desk, setDesk] = useState(false)
-  useEffect(() => { setDesk(inDesktopApp()) }, [])
 
   useEffect(() => {
     refreshOfflineStatus()
@@ -45,19 +35,14 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
     window.addEventListener('online', on)
     window.addEventListener('offline', off)
     if (navigator.onLine) fetchOfflineManifest().then(setManifest)
-    // Arrived from «ثبّت الجامع» elsewhere on the site: the download starts by itself
-    if (new URLSearchParams(location.search).get('start') === '1') {
-      history.replaceState(null, '', '/offline')
-      refreshOfflineStatus().then(st => { if (!st?.ready && navigator.onLine) startOfflineDownload() })
-    }
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [])
 
   if (s.phase === 'unsupported' || (typeof window !== 'undefined' && !offlineSupported())) {
     return (
       <Card>
-        <p className="font-bold text-green-900">هذا المتصفح لا يدعم العمل دون إنترنت</p>
-        <p className="text-sm text-muted mt-1">جرّب Chrome أو Edge أو Safari بإصدار حديث، وثبّت الجامع كتطبيق.</p>
+        <p className="font-bold text-green-900">تعذّر حفظ قاعدة البيانات على هذا الجهاز</p>
+        <p className="text-sm text-muted mt-1">هذا الجهاز لا يدعم تخزين قاعدة البيانات للعمل دون إنترنت.</p>
       </Card>
     )
   }
@@ -75,18 +60,18 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
           <div className="flex items-center gap-3">
             <Check />
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-green-900">الجامع محفوظ على جهازك</p>
+              <p className="font-bold text-green-900">قاعدة البيانات محفوظة على جهازك</p>
               <p className="text-sm text-muted">
-                يعمل الموقع كله دون إنترنت بكل صفحاته وأدواته، عدا تسجيل الدخول والمكتبة الشخصية.
-                {s.status?.version && <> إصدار البيانات {s.status.version}.</>}
+                يعمل التطبيق كله دون إنترنت بكل صفحاته وأدواته، عدا تسجيل الدخول والمكتبة الشخصية.
+                {s.status?.version && <> إصدار قاعدة البيانات {s.status.version}.</>}
               </p>
             </div>
           </div>
           {update && (
             <div className="mt-3 rounded-xl bg-primary-soft p-3 text-sm">
-              <p className="font-bold text-green-900">إصدار أحدث من البيانات متاح ({manifest!.version})</p>
+              <p className="font-bold text-green-900">إصدار أحدث من قاعدة البيانات متاح ({manifest!.version})</p>
               <button type="button" onClick={startOfflineDownload} className={btn + ' mt-2'}>
-                تحديث ({formatBytes(manifest!.downloadSize)})
+                تحديث قاعدة البيانات ({formatBytes(manifest!.downloadSize)})
               </button>
             </div>
           )}
@@ -94,11 +79,11 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
             <div className="mt-4 flex flex-wrap gap-2 items-center">
               {!confirmRemove ? (
                 <button type="button" onClick={() => setConfirmRemove(true)} className="text-sm text-muted underline underline-offset-2">
-                  حذف البيانات من الجهاز
+                  حذف قاعدة البيانات من الجهاز
                 </button>
               ) : (
                 <>
-                  <span className="text-sm">حذف {m ? formatBytes(m.dbSize) : 'البيانات'} من الجهاز؟</span>
+                  <span className="text-sm">حذف {m ? formatBytes(m.dbSize) : 'قاعدة البيانات'} من الجهاز؟</span>
                   <button type="button" onClick={() => { setConfirmRemove(false); removeOfflineData() }} className="text-sm font-bold text-red-700 underline">حذف</button>
                   <button type="button" onClick={() => setConfirmRemove(false)} className="text-sm underline">إلغاء</button>
                 </>
@@ -110,7 +95,7 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
         <>
           <Steps at={s.phase === 'download' ? 0 : 1} />
           <p className="font-bold text-green-900 mt-3">
-            {s.phase === 'download' ? 'جارٍ تحميل الجامع…' : 'جارٍ تجهيز البيانات على الجهاز…'}
+            {s.phase === 'download' ? 'جارٍ تحميل قاعدة البيانات…' : 'جارٍ تجهيز قاعدة البيانات على الجهاز…'}
           </p>
           <div className="mt-3 h-3 rounded-full bg-surface-sunken overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct(s.done, s.total)}>
             <div className="h-full ml-auto bg-primary transition-[width] duration-300" style={{ width: `${pct(s.done, s.total)}%` }} />
@@ -120,19 +105,21 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
             {s.phase === 'download' && s.speed > 0 && <span>{formatBytes(s.speed)}/ث · {eta(remaining)}</span>}
             {s.phase === 'import' && <span>الخطوة الأخيرة، لا تُغلق التطبيق</span>}
           </div>
-          <p className="text-xs text-muted mt-3">أبقِ الصفحة مفتوحة. إن انقطع الاتصال يكمل من حيث توقّف.</p>
+          <p className="text-xs text-muted mt-3">أبقِ التطبيق مفتوحًا. إن انقطع الاتصال يكمل من حيث توقّف.</p>
           {s.phase === 'download' && (
             <button type="button" onClick={pauseOfflineDownload} className={btnOutline + ' mt-3'}>إيقاف مؤقت</button>
           )}
         </>
       ) : (
         <>
-          <p className="font-bold text-green-900">{desk ? 'حمّل الموسوعة على جهازك' : 'ثبّت الجامع على جهازك'}</p>
-          <p className="text-sm text-muted mt-1">الموقع كله بكل صفحاته وأدواته على جهازك، يعمل بلا اتصال.</p>
+          <p className="font-bold text-green-900">تحميل قاعدة البيانات</p>
+          <p className="text-sm text-muted mt-1">
+            احفظ قاعدة بيانات الموسوعة كاملة داخل التطبيق لتعمل جميع الكتب والأحاديث والرواة والأدوات دون اتصال.
+          </p>
           <ol className="mt-3 space-y-1.5 text-sm">
-            <li><b>١.</b> {desk ? 'اضغط «تحميل الموسوعة»' : 'اضغط «تثبيت الجامع» ووافق إن سألك المتصفح'}{m && <> ({formatBytes(m.downloadSize)}، ويُفضَّل عبر Wi-Fi)</>}.</li>
-            <li><b>٢.</b> {desk ? 'أبقِ التطبيق مفتوحًا' : 'أبقِ الصفحة مفتوحة'} حتى يكتمل الشريط. إن انقطع الاتصال يكمل من حيث توقّف.</li>
-            <li><b>٣.</b> {desk ? 'بعدها يعمل الجامع دون إنترنت متى فتحته.' : 'افتح الجامع من أيقونته متى شئت، ولو دون إنترنت.'}</li>
+            <li><b>١.</b> اضغط «تحميل قاعدة البيانات»{m && <> ({formatBytes(m.downloadSize)}، ويُفضَّل عبر Wi-Fi)</>}.</li>
+            <li><b>٢.</b> أبقِ التطبيق مفتوحًا حتى يكتمل الشريط. إن انقطع الاتصال يكمل من حيث توقّف.</li>
+            <li><b>٣.</b> بعدها يعمل الجامع دون إنترنت متى فتحته.</li>
           </ol>
           {s.phase === 'paused' && s.status && s.status.staged > 0 && (
             <p className="text-sm mt-2">تمّ تحميل {formatBytes(s.status.stagedBytes)} من قبل، ويكمل التحميل من حيث توقّف.</p>
@@ -142,13 +129,13 @@ export default function OfflineManager({ compact = false }: { compact?: boolean 
               {s.error.code === 'space'
                 ? `لا توجد مساحة كافية على الجهاز: يلزم نحو ${formatBytes(s.error.need ?? 0)}، والمتاح ${formatBytes(Math.max(0, s.error.free ?? 0))}.`
                 : s.error.code === 'busy'
-                  ? 'البيانات مفتوحة في نافذة أخرى من الجامع. أغلق النوافذ الأخرى ثم أعد المحاولة.'
+                  ? 'قاعدة البيانات مفتوحة في نافذة أخرى من الجامع. أغلق النوافذ الأخرى ثم أعد المحاولة.'
                   : `تعذّر التحميل${online ? '' : ' (لا يوجد اتصال)'}. أعد المحاولة، وسيكمل من حيث توقّف.`}
             </p>
           )}
-          <button type="button" onClick={installAndStart} disabled={!online || (!m && !s.status?.manifest)}
+          <button type="button" onClick={startOfflineDownload} disabled={!online || (!m && !s.status?.manifest)}
             className={btn + ' mt-3 disabled:opacity-50'}>
-            <DownloadIcon /> {s.phase === 'paused' || s.status?.staged ? 'متابعة التحميل' : desk ? 'تحميل الموسوعة' : 'تثبيت الجامع'}
+            <DownloadIcon /> {s.phase === 'paused' || s.status?.staged ? 'متابعة التحميل' : 'تحميل قاعدة البيانات'}
           </button>
           {!online && <p className="text-xs text-muted mt-2">يلزم اتصال بالإنترنت للتحميل.</p>}
           {online && !m && s.phase !== 'checking' && <p className="text-xs text-muted mt-2">بيانات التحميل غير متاحة الآن.</p>}

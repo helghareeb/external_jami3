@@ -41,7 +41,7 @@ export default function DesktopUpgrade() {
     return () => { live = false; clearTimeout(t) }
   }, [])
 
-  if (!show || pathname === '/offline' || pathname === '/apps') return null
+  if (!show || pathname === '/offline' || pathname === '/apps' || pathname === '/database') return null
   const close = () => {
     try { localStorage.setItem(DISMISS_KEY, show.offline ? 'offline' : 'online') } catch {}
     setShow(null)
@@ -67,7 +67,7 @@ export default function DesktopUpgrade() {
           const mine = os === show.os
           return (
             <li key={os} className={'flex flex-col items-center gap-1 rounded-xl py-2 border ' + (mine ? 'border-[#C9A96B] bg-[#C9A96B]/15' : 'border-[#F8F1E4]/15')}>
-              <Icon className={'w-6 h-6 ' + (mine ? 'text-[#C9A96B]' : 'text-[#F8F1E4]/80')} />
+              <Icon className="w-6 h-6" onDark />
               <span className="text-xs font-bold">{name}</span>
               {mine && <span className="text-[10px] opacity-70 -mt-0.5">جهازك</span>}
             </li>

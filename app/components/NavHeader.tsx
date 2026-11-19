@@ -6,6 +6,7 @@ import { useTheme } from '@/lib/themeContext'
 import UiIcon from './UiIcon'
 import { InstallButton } from './InstallApp'
 import { useMe } from '@/lib/useLibrary'
+import { inOurApp } from '@/lib/appContext'
 
 type NavLink = { href: string; label: string; isNew?: boolean; external?: boolean }
 type NavCategory = { id: string; label: string; links: NavLink[] }
@@ -278,6 +279,9 @@ export default function NavHeader() {
   const [open, setOpen] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
+  // Inside our apps: «قاعدة البيانات» (the database download and update) in the header
+  const [inApp, setInApp] = useState(false)
+  useEffect(() => { setInApp(inOurApp()) }, [])
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -357,6 +361,12 @@ export default function NavHeader() {
           <AccountButton />
           <ThemeToggle />
           <div className="hidden min-[700px]:flex items-center gap-1 xl:gap-2">
+            {inApp && (
+              <a href="/database"
+                className="inline-flex items-center rounded-full bg-[#C9A96B]/20 border border-[#C9A96B]/50 text-[#F8F1E4] hover:bg-[#C9A96B]/30 text-xs font-bold px-2.5 py-1.5 whitespace-nowrap transition-colors">
+                قاعدة البيانات
+              </a>
+            )}
             <NumberingToggle />
             <NumeralToggle />
           </div>
@@ -378,6 +388,12 @@ export default function NavHeader() {
       {mobileOpen && (
         <div className="min-[700px]:hidden border-t border-[#C9A96B]/30 bg-surface text-ink max-h-[72vh] overflow-y-auto overscroll-contain">
           <div className="flex flex-wrap items-center gap-3 p-3 bg-[#0F3D2E]">
+            {inApp && (
+              <a href="/database" onClick={() => setMobileOpen(false)}
+                className="inline-flex items-center rounded-full bg-[#C9A96B] text-[#13261b] text-xs font-bold px-3 py-1.5 whitespace-nowrap">
+                قاعدة البيانات
+              </a>
+            )}
             <NumberingToggle />
             <NumeralToggle />
             <InstallButton className="inline-flex items-center gap-1.5 rounded-full bg-[#C9A96B] text-[#13261b] text-xs font-bold px-3 py-1.5" />

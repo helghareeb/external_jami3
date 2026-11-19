@@ -14,7 +14,7 @@ import { AppleIcon, LinuxIcon, WindowsIcon } from './PlatformIcons'
 const PLATFORMS: {
   os: Exclude<DesktopOs, 'other'>
   name: string
-  Icon: (p: { className?: string }) => React.JSX.Element
+  Icon: (p: { className?: string; onDark?: boolean }) => React.JSX.Element
   links: { key: DownloadKey; label: React.ReactNode }[]
 }[] = [
   { os: 'windows', name: 'ويندوز', Icon: WindowsIcon, links: [{ key: 'windows', label: 'تنزيل للويندوز' }] },
@@ -49,7 +49,7 @@ export default function DesktopApps() {
       {latest === 'none' ? (
         <>
           <p className="text-sm text-muted mt-1">تطبيقات ويندوز وماك ولينكس قريبًا: برنامج يُثبَّت على الجهاز ويتحدّث تلقائيًا.</p>
-          <div className="mt-3 flex gap-3 text-muted" aria-hidden="true">
+          <div className="mt-3 flex gap-3" aria-hidden="true">
             <WindowsIcon className="w-6 h-6" /><AppleIcon className="w-6 h-6" /><LinuxIcon className="w-6 h-6" />
           </div>
         </>
@@ -62,7 +62,7 @@ export default function DesktopApps() {
               return (
                 <li key={pos} className={'rounded-xl border p-3 ' + (mine ? 'border-primary bg-primary-soft' : 'border-border')}>
                   <p className="font-bold text-sm flex items-center gap-2">
-                    <Icon className={'w-5 h-5 shrink-0 ' + (mine ? 'text-primary' : 'text-muted')} />
+                    <Icon className="w-5 h-5 shrink-0" />
                     <span>{name}</span>
                     {mine && <span className="text-xs text-muted font-normal">— جهازك</span>}
                   </p>

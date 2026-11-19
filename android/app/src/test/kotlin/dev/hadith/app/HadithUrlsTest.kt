@@ -15,6 +15,7 @@ class HadithUrlsTest {
         assertTrue(HadithUrls.isInternalSiteUrl("https://hadith.dev/hadith/15048"))
         assertTrue(HadithUrls.isInternalSiteUrl("https://www.hadith.dev/search?q=test"))
         assertTrue(HadithUrls.isInternalSiteUrl("https://hadith.dev/offline"))
+        assertTrue(HadithUrls.isInternalSiteUrl("https://hadith.dev/database"))
     }
 
     @Test
@@ -58,6 +59,7 @@ class HadithUrlsTest {
         assertEquals(NavTab.NARRATORS, HadithUrls.resolveTab("https://hadith.dev/narrators/42"))
         assertEquals(NavTab.NARRATORS, HadithUrls.resolveTab("https://hadith.dev/companions"))
         assertEquals(NavTab.MORE, HadithUrls.resolveTab("https://hadith.dev/offline"))
+        assertEquals(NavTab.MORE, HadithUrls.resolveTab("https://hadith.dev/database"))
         assertEquals(NavTab.MORE, HadithUrls.resolveTab("https://hadith.dev/saved"))
     }
 

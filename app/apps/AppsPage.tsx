@@ -1,6 +1,6 @@
 'use client'
 
-// The apps page: the visitor's own device first. Inside one of our apps it points to /offline instead, where the
+// The apps page: the visitor's own device first. Inside one of our apps it points to /database instead, where the
 // encyclopedia is downloaded and kept up to date (the Android app also sees its own update here, from AndroidApp).
 import { useEffect, useState } from 'react'
 import DesktopApps from '@/app/offline/DesktopApps'
@@ -31,8 +31,8 @@ export default function AppsPage() {
       {where && where !== 'browser' && (
         <div className="mt-4 rounded-2xl border border-primary bg-primary-soft p-4 text-sm">
           <p className="font-bold text-green-900">أنت تستعمل تطبيق الجامع</p>
-          <p className="text-muted mt-1">لتحميل الموسوعة على جهازك أو تحديثها افتح صفحة «الجامع دون إنترنت».</p>
-          <a href="/offline" className="inline-flex mt-3 rounded-full bg-primary text-on-dark font-bold px-5 py-2 text-sm">الجامع دون إنترنت</a>
+          <p className="text-muted mt-1">لتحميل قاعدة البيانات على جهازك أو تحديثها افتح صفحة «قاعدة البيانات».</p>
+          <a href="/database" className="inline-flex mt-3 rounded-full bg-primary text-on-dark font-bold px-5 py-2 text-sm">قاعدة البيانات</a>
         </div>
       )}
       {where === 'android-app' ? <AndroidApp /> : where === 'browser' || where === 'pwa' ? order.map(k => cards[k]) : null}

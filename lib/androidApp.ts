@@ -28,7 +28,10 @@ declare global {
   }
 }
 
-export const inAndroidApp = () => typeof window !== 'undefined' && !!window.hadithAndroid?.isAndroid?.()
+export const inAndroidApp = () =>
+  typeof window !== 'undefined' &&
+  (!!window.hadithAndroid?.isAndroid?.() ||
+    (typeof navigator !== 'undefined' && /\bHadithAndroid\//i.test(navigator.userAgent)))
 
 export function installedAndroidVersionCode(): number {
   if (!inAndroidApp()) return 0
