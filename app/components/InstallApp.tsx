@@ -8,7 +8,7 @@
 // <InstallApp /> (in the layout) registers the service worker, shows a small dismissible bar on
 // phones, and holds the iOS steps sheet; <InstallButton /> is the same action for menus and links.
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { desktopAppReplacesPwa } from '@/lib/desktopApps'
+import { desktopAppReplacesPwa, inDesktopApp } from '@/lib/desktopApps'
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -31,7 +31,7 @@ if (typeof window !== 'undefined') {
 
 const standalone = () =>
   typeof window !== 'undefined' &&
-  (window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true)
+  (inDesktopApp() || window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true)
 const isIos = () =>
   typeof navigator !== 'undefined' &&
   (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1))

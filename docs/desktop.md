@@ -5,15 +5,26 @@ browser-installed app (PWA) keeps the 1.6 GB offline database in browser storage
 (Safari most of all), which private windows and «clear browsing data» wipe, and which has per-browser quotas.
 A desktop app keeps it as ordinary files in its own folder.
 
-## Stages
+## How it works
 
-1. **Now — the site in a window, with automatic updates.** `main.js` opens https://hadith.dev in a sandboxed
-   window (no Node in the page; links to other sites open in the user's browser). With no connection it shows
-   `pages/no-connection.html`, which retries.
-2. **Next — offline (after the PWA work is finished, since the PWA is the reference).** The app downloads the
-   offline edition from `https://files.hadith.dev/offline/` (the same `manifest.json` and chunks as the PWA,
-   see [publishing.md](publishing.md)) into `app.getPath('userData')` and serves the offline build of the site
-   from there, with PGlite running in Node on those files (`scripts/offline/build-offline-app.mjs --node`).
+The app is hadith.dev in its own window and its own browser profile (the app's folder: `%APPDATA%\Hadith` on
+Windows, `~/Library/Application Support/Hadith` on macOS, `~/.config/Hadith` on Linux). Offline works the same way
+as the installed browser app and the Android app: the site's service worker keeps the offline reader, and
+«الجامع دون إنترنت» downloads the encyclopedia (1.6 GB) into that profile, where PGlite runs it. The profile is the
+app's alone, so clearing browser data, private windows and browser quotas never touch it; its storage is
+persistent and its quota is the free disk.
+
+- `window.hadithDesktop` (preload.js) tells the site it runs in the app: the site then shows its installed-app
+  bar (back, forward, reload, tabs), offers the offline download and its data updates (OfflineOffer), and hides
+  the install prompts and the desktop download section.
+- Permissions: only persistent storage, clipboard and fullscreen, and only for hadith.dev.
+- Keys without a menu bar: Alt+←/→, F5/Ctrl+R, Ctrl+=/−/0 (zoom), F11.
+- No connection and nothing downloaded yet: `pages/no-connection.html` explains and retries.
+- `"hadithOffline": true` in desktop/package.json (since 0.2.0) puts `"offline": true` in latest.json, which makes
+  hadith.dev's announcement say the app works offline and shows it again to readers who closed the first one.
+
+Tested 2026-11-19 (0.2.0 from source, separate profile): download and setup in about a minute, then with the
+network cut the home page, /books/1, /hadith/120 and a search all opened from the device.
 
 ## Files
 
@@ -21,7 +32,7 @@ A desktop app keeps it as ordinary files in its own folder.
 |---|---|
 | `desktop/package.json` | Version (the app's version, used by updates), Electron and electron-builder pinned |
 | `desktop/electron-builder.yml` | Installers and update settings. **`appId: dev.hadith.desktop` must never change after the first release.** |
-| `desktop/main.js` / `preload.js` | The window, link handling, updates. The page only learns `window.hadithDesktop = {isDesktop, platform, version}` |
+| `desktop/main.js` / `preload.js` | The window, permissions, keys, link handling, updates. The page only learns `window.hadithDesktop = {isDesktop, platform, version}` |
 | `desktop/scripts/write-latest-json.mjs` | Writes `latest.json` (the download links for hadith.dev/offline) |
 | `.github/workflows/desktop.yml` | Builds on Windows, macOS and Linux runners and publishes on a `desktop-v*` tag |
 | `app/offline/DesktopApps.tsx` | «الجامع لسطح المكتب» on /offline: the user's platform first; «قريبًا» until the first release; hidden inside the app |

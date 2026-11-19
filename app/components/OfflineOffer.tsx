@@ -13,7 +13,7 @@ import {
   fetchOfflineManifest, formatBytes, offlineSupported, refreshOfflineStatus, startOfflineDownload,
   useOfflineState, type OfflineManifest,
 } from '@/lib/offline/client'
-import { desktopAppReplacesPwa } from '@/lib/desktopApps'
+import { desktopAppReplacesPwa, inDesktopApp } from '@/lib/desktopApps'
 
 const DISMISS_KEY = 'offline-offer-dismissed'
 const DISMISS_DAYS = 14
@@ -21,6 +21,7 @@ const UPDATE_DISMISS_KEY = 'offline-update-dismissed'   // «<version>|<time>»
 const UPDATE_DISMISS_DAYS = 1
 
 const standalone = () =>
+  inDesktopApp() ||                                      // the desktop app counts as the installed app
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 
 export default function OfflineOffer() {
