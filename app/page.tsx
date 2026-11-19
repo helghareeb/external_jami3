@@ -14,9 +14,6 @@ const GRADE_SHORTCUTS = [
   { label: 'الصحابة', href: '/narrators?companion=1', color: 'bg-amber-500 text-white border-amber-500' },
 ]
 
-// Main hero film in public/media/; the full set of encyclopedia & feature films lives at /videos.
-const MAIN_FILM = { src: 'promo', title: 'الجامع — موسوعة الحديث النبوي الشريف' }
-
 // Hadith pages that each show off a different part of the hadith page
 const HADITH_EXAMPLES = [
   { id: 5, title: 'إنما الأعمال بالنيات', source: 'صحيح البخاري ١', shows: 'الإسناد والتخريج وحكم الدرر' },
@@ -44,7 +41,7 @@ export default async function Home() {
 
   return (
     <div dir="rtl" className="home-page">
-      {/* Hero: the main film, then search */}
+      {/* Hero: the title, then search */}
       <section className="max-w-6xl mx-auto px-4 pt-2 sm:pt-4">
         <div className="flex items-end justify-between gap-3 flex-wrap mb-3">
           <div>
@@ -53,19 +50,9 @@ export default async function Home() {
           </div>
           <p className="text-sm text-muted font-sans">قاعدة بيانات متكاملة لباحثي الحديث</p>
         </div>
-        <video
-          controls
-          preload="metadata"
-          playsInline
-          poster={`/media/${MAIN_FILM.src}-poster.jpg`}
-          aria-label={MAIN_FILM.title}
-          className="w-full aspect-video rounded-2xl border border-[#D9C9A8] bg-[#faf6ec] shadow-[0_18px_50px_rgba(15,61,46,.14)]"
-        >
-          <source src={`/media/${MAIN_FILM.src}.mp4`} type="video/mp4" />
-          <track kind="captions" src={`/media/${MAIN_FILM.src}.ar.vtt`} srcLang="ar" label="العربية" default />
-        </video>
-
-        <div className="mt-5">
+        {/* The hero film (public/media/promo.mp4) was taken off the home page on 2026-11-19 until a new one is
+            made; the films are still at /videos. */}
+        <div className="mt-2">
           <HomeSearch />
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm font-sans text-muted">
             <span>جرّب:</span>
