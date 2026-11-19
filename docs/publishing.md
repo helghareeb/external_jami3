@@ -11,6 +11,8 @@ Publish both whenever the production data changes in a way readers should get (a
 fix, new tables). Each takes one upload command once built. Work through the steps in order: dump → check
 → offline build → upload → verify → update the README → tidy up.
 
+The desktop app (Windows, macOS, Linux) has its own release flow, also through R2 (`files.hadith.dev/desktop/`): see [desktop.md](desktop.md).
+
 ## How it is wired (set up 2026-11-19)
 
 - **Domain.** hadith.dev is registered at Railway; its DNS is served by Cloudflare (zone `hadith.dev`,
