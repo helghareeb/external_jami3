@@ -33,6 +33,13 @@ export default function DesktopApps() {
     fetchDesktopLatest().then(l => setLatest(l ?? 'none'))
   }, [])
 
+  // Arrived from the announcement (/offline#desktop): the section appears after latest.json, so scroll to it then
+  useEffect(() => {
+    if (latest !== null && location.hash === '#desktop') {
+      requestAnimationFrame(() => document.getElementById('desktop')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    }
+  }, [latest])
+
   if (inApp || latest === null) return null
   const ordered = [...PLATFORMS].sort((a, b) => Number(b.os === os) - Number(a.os === os))
 

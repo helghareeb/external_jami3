@@ -13,6 +13,7 @@ import {
   fetchOfflineManifest, formatBytes, offlineSupported, refreshOfflineStatus, startOfflineDownload,
   useOfflineState, type OfflineManifest,
 } from '@/lib/offline/client'
+import { desktopAppReplacesPwa } from '@/lib/desktopApps'
 
 const DISMISS_KEY = 'offline-offer-dismissed'
 const DISMISS_DAYS = 14
@@ -56,7 +57,8 @@ export default function OfflineOffer() {
       let dismissed = 0
       try { dismissed = Number(localStorage.getItem(DISMISS_KEY)) || 0 } catch {}
       if (Date.now() - dismissed < DISMISS_DAYS * 864e5 && !status?.staged) return
-      if (navigator.onLine) fetchOfflineManifest().then(m => { if (m) { setManifest(m); setTimeout(() => setOffer(true), 3000) } })
+      // On a computer with a desktop release out, the desktop app is offered instead (DesktopUpgrade)
+      if (navigator.onLine) desktopAppReplacesPwa().then(desk => { if (!desk) fetchOfflineManifest().then(m => { if (m) { setManifest(m); setTimeout(() => setOffer(true), 3000) } }) })
     })
   }, [])
 

@@ -43,3 +43,12 @@ export async function fetchDesktopLatest(): Promise<DesktopLatest | null> {
     return null
   }
 }
+
+let releaseCheck: Promise<boolean> | null = null
+/** On a computer, once a desktop release exists, the desktop app is the way to install «الجامع»: the browser-app
+ *  (PWA) install bar and the offline offer stand aside for the announcement (DesktopUpgrade). Phones keep them. */
+export function desktopAppReplacesPwa(): Promise<boolean> {
+  if (detectOs() === 'other' || inDesktopApp()) return Promise.resolve(false)
+  releaseCheck ??= fetchDesktopLatest().then(l => !!l && Object.keys(l.downloads || {}).length > 0)
+  return releaseCheck
+}

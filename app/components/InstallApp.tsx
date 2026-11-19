@@ -8,6 +8,7 @@
 // <InstallApp /> (in the layout) registers the service worker, shows a small dismissible bar on
 // phones, and holds the iOS steps sheet; <InstallButton /> is the same action for menus and links.
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { desktopAppReplacesPwa } from '@/lib/desktopApps'
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -104,8 +105,10 @@ export default function InstallApp() {
     let dismissed = 0
     try { dismissed = Number(localStorage.getItem(DISMISS_KEY)) || 0 } catch {}
     if (Date.now() - dismissed < DISMISS_DAYS * 864e5) return
-    const t = setTimeout(() => setBar(true), 6000)
-    return () => clearTimeout(t)
+    let live = true
+    // On a computer with a desktop release out, the desktop app is offered instead (DesktopUpgrade)
+    const t = setTimeout(() => desktopAppReplacesPwa().then(desk => { if (live && !desk) setBar(true) }), 6000)
+    return () => { live = false; clearTimeout(t) }
   }, [mode])
 
   const dismiss = () => {
