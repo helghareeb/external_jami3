@@ -19,13 +19,16 @@ const CATEGORIES: NavCategory[] = [
       // { href: '/musnad-musannaf', label: 'المسند المصنف المعلل', isNew: true },
       { href: '/books/service-books', label: 'الكتب الخدمية' },
       { href: '/hadiths/tarf-index', label: 'قائمة الأطراف' },
-      { href: '/hadiths/tarfs-by-isnad', label: 'أطراف على الأسانيد' },
+      { href: '/isnad-tree', label: 'أطراف على الأسانيد' },
       { href: '/books/intersection', label: 'متفق وزوائد المصنفات' },
       { href: '/hadiths/narrator-additions', label: 'زوائد الرواة عن المصنفين' },
-      { href: '/matn-compare', label: 'المتون المجمعة' },
-      { href: '/lexicon', label: 'تعريفات' },
+      { href: '/compound-matn', label: 'المتون المجمعة' },
+      { href: '/definitions', label: 'تعريفات' },
       { href: '/saved', label: 'مجالات المستخدم' },
-      { href: '/videos', label: 'أفلام الموسوعة' },
+      // DEFERRED (web-only enhancement — not in legacy Windows app):
+      // { href: '/hadiths/tarfs-by-isnad', label: 'أطراف على الأسانيد (إحصائي)', isNew: true },
+      // { href: '/matn-compare', label: 'مقارنة المتون بالخوارزمية', isNew: true },
+      // { href: '/videos', label: 'أفلام الموسوعة', isNew: true },
       // { href: '/hadiths/chapters', label: 'فهرس الأبواب', isNew: true },
       // { href: '/chapters', label: 'بحث الأبواب', isNew: true },
       // { href: '/find-by-number', label: 'رقم الحديث', isNew: true },
@@ -39,11 +42,14 @@ const CATEGORIES: NavCategory[] = [
     label: 'رواة',
     links: [
       { href: '/narrators', label: 'قائمة الرواة' },
-      { href: '/companions', label: 'الصحابة' },
       { href: '/narrators/multi-book', label: 'رواة كتاب/كتب' },
-      { href: '/narrators/generations', label: 'تصنيفات خاصة بالرواة' },
+      { href: '/narrator-types', label: 'تصنيفات خاصة بالرواة' },
       { href: '/narrators/jarh-terms', label: 'ألفاظ الجرح والتعديل' },
-      { href: '/scholars', label: 'أقوال أهل العلم في أحوال الرواة' },
+      { href: '/narrators/criticism-scholars', label: 'أقوال أهل العلم في أحوال الرواة' },
+      // DEFERRED (web-only enhancement — not in legacy Windows app):
+      // { href: '/companions', label: 'الصحابة', isNew: true },
+      // { href: '/narrators/generations', label: 'طبقات الرواة', isNew: true },
+      // { href: '/scholars', label: 'أحكام المحدثين (ويب)', isNew: true },
       // { href: '/bio-search', label: 'التراجم', isNew: true },
       // { href: '/narrators/sahihayn', label: 'رجال الصحيحين', isNew: true },
       // { href: '/narrators/alpha-index', label: 'الفهرس الأبجدي', isNew: true },
@@ -90,7 +96,9 @@ const CATEGORIES: NavCategory[] = [
     label: 'مكانز موضوعية',
     links: [
       { href: '/topics', label: 'شجرة الربط الموضوعي' },
-      { href: '/topics/contradictions', label: 'ربط بالمخالف' },
+      { href: '/controversial', label: 'ربط بالمخالف' },
+      // DEFERRED (web-only enhancement — not in legacy Windows app):
+      // { href: '/topics/contradictions', label: 'تحليل التعارض بالويب', isNew: true },
       // { href: '/topics/companions', label: 'الصحابة والموضوعات', isNew: true },
       // { href: '/topics/stats', label: 'احصاء الموضوعات', isNew: true },
     ],
@@ -113,11 +121,12 @@ const CATEGORIES: NavCategory[] = [
     label: 'تطبيقات علوم الحديث',
     links: [
       { href: '/hadith-terms', label: 'تطبيقات المصطلح' },
-      { href: '/controversial', label: 'مشكل الحديث' },
-      { href: '/hadiths/timeline', label: 'تواريخ المتون' },
+      { href: '/hadiths/matn-dates', label: 'تواريخ المتون' },
       { href: '/hadiths/amthal', label: 'أمثال الحديث النبوي' },
       { href: '/scholars/hadith-grades', label: 'أقوال أهل العلم في الحكم على الحديث' },
       { href: '/scholars/hadith-sciences', label: 'أقوال أهل العلم في علوم الحديث' },
+      // DEFERRED (web-only enhancement — not in legacy Windows app):
+      // { href: '/hadiths/timeline', label: 'التسلسل الزمني للكتب (ويب)', isNew: true },
       // { href: '/chains', label: 'علو الاسناد', isNew: true },
       // { href: '/narrator-types', label: 'علل الاسناد', isNew: true },
       // { href: '/hadiths/ilal', label: 'علل الحديث', isNew: true },
@@ -189,6 +198,7 @@ const CATEGORIES: NavCategory[] = [
   //     // { href: '/books/transmission-genealogy', label: 'تداخل الكتب', isNew: true },
   //   ],
   // },
+  /* DEFERRED (web-only enhancement — not in legacy Windows app): «للمطورين»
   {
     id: 'developers',
     label: 'للمطورين',
@@ -199,6 +209,7 @@ const CATEGORIES: NavCategory[] = [
       { href: '/account', label: 'حسابي والرموز الشخصية' },
     ],
   },
+  */
 ]
 
 // Sign-in is optional: a person icon, labelled «دخول» until the reader signs in

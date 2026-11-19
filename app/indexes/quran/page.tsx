@@ -31,8 +31,7 @@ export default async function QuranIndexPage({
       `SELECT title
        FROM hadith_index_items
        WHERE index_id = 2
-       ORDER BY title
-       LIMIT 2000`
+       ORDER BY title`
     )
     .catch(() => ({ rows: [] as ItemRow[] }))
 

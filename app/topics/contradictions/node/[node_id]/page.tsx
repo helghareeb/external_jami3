@@ -12,7 +12,7 @@ interface HadithRow {
 }
 
 function cleanTarf(tarf: string | null): string {
-  return (tarf || '').replace(/<[^>]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return (tarf || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 export default async function MusakaratNodePage({ params }: { params: Promise<{ node_id: string }> }) {

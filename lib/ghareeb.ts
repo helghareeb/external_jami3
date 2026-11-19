@@ -322,3 +322,69 @@ export const LEXICON_SCOPE_CTE = `
     SELECT id FROM lexicon_items WHERE parent_id = $1
   )
 `
+
+export interface LexiconHadithWhereClause {
+  whereSql: string
+  params: Array<string | number>
+}
+
+function normalizeLexiconArabic(text: string): string {
+  return text
+    .replace(/[\u064B-\u065F\u0670\u0671\u0640]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+}
+
+/**
+ * Build fast GIN-indexed WHERE clause matching hadiths annotated in `hadith_toc.content`
+ * for a leaf lexicon entry (`lexicon_id=1` غريب الحديث or `lexicon_id=3` الأماكن والبلدان).
+ */
+export function buildLexiconHadithWhere(item: {
+  id: number
+  lexicon_id: number
+  text: string
+  is_leaf: boolean
+}): LexiconHadithWhereClause | null {
+  if (!item.is_leaf) return null
+
+  if (item.lexicon_id === 1) {
+    return {
+      whereSql: `ht.is_leaf = true
+        AND ht.is_paragraph = true
+        AND to_tsvector('simple', COALESCE(ht.content, '')) @@ plainto_tsquery('simple', $1)
+        AND ht.content LIKE $2`,
+      params: [`غريب ربط ${item.id}`, `%<غريب%ربط="${item.id}"%`],
+    }
+  }
+
+  if (item.lexicon_id === 3) {
+    const baseText = item.text.split(/[(:،]/)[0].trim()
+    const normalized = normalizeLexiconArabic(baseText)
+    const words = normalized.match(/[\u0621-\u064A]+/g) ?? []
+    if (words.length === 0) return null
+
+    const w0 = words[0]
+    if (!w0) return null
+    const lVariant = w0.startsWith('ال') ? `لل${w0.slice(2)}` : `ل${w0}`
+    const firstVariants = Array.from(new Set([w0, `ب${w0}`, `و${w0}`, `ف${w0}`, `ك${w0}`, lVariant]))
+    const tsParts = [`(${firstVariants.join(' | ')})`, ...words.slice(1)]
+    const tsQuery = tsParts.join(' & ')
+    const placeLike = `%${words.join(' ')}%`
+
+    return {
+      whereSql: `ht.is_leaf = true
+        AND ht.is_paragraph = true
+        AND ht.content LIKE '%<علم_مكان%'
+        AND to_tsvector('simple', normalize_hadith(COALESCE(ht.content, ''))) @@ to_tsquery('simple', $1)
+        AND EXISTS (
+          SELECT 1
+          FROM regexp_matches(ht.content, '<علم_مكان[^>]*>([^<]+)</علم_مكان>', 'g') AS pm
+          WHERE normalize_hadith(pm[1]) LIKE $2
+        )`,
+      params: [tsQuery, placeLike],
+    }
+  }
+
+  return null
+}

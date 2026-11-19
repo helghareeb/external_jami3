@@ -19,6 +19,7 @@ interface GwamhItem {
   death_year_num: number | null
   is_companion: boolean
   hadiths_count: number
+  athar_count?: number
 }
 
 interface NarratorInfo {
@@ -63,7 +64,6 @@ export default function GwamhBrowser({
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<GwamhItem[]>([])
   const [narrator, setNarrator] = useState<NarratorInfo | null>(null)
-  const [matchScope, setMatchScope] = useState<'root' | 'chain'>('root')
   const [hadiths, setHadiths] = useState<GwamhHadith[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -101,7 +101,6 @@ export default function GwamhBrowser({
         setCategories(data.categories || [])
         if (narratorId) {
           setNarrator(data.narrator || null)
-          setMatchScope(data.matchScope || 'root')
           setHadiths(data.hadiths || [])
           setTotal(data.total ?? 0)
         } else {
@@ -150,8 +149,8 @@ export default function GwamhBrowser({
             {(categories.length > 0
               ? categories
               : [
-                  { id: 1, name: 'آثار الصحابة', count: 711 },
-                  { id: 2, name: 'آثار التابعيين', count: 1053 },
+                  { id: 1, name: 'آثار الصحابة', count: 446 },
+                  { id: 2, name: 'آثار التابعيين', count: 1031 },
                 ]
             ).map(cat => (
               <button
@@ -227,6 +226,11 @@ export default function GwamhBrowser({
                   </div>
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-border text-xs">
                     <div className="flex items-center gap-2 text-gray-400">
+                      {(item.athar_count ?? 0) > 0 && (
+                        <span className="rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 font-medium">
+                          {item.athar_count!.toLocaleString('ar-EG')} {gamhId === 1 ? 'أثر موقوف' : 'أثر مقطوع'}
+                        </span>
+                      )}
                       {item.death_year_num != null && item.death_year_num > 0 && <span>ت {item.death_year_num}هـ</span>}
                       <Link href={`/narrator/${item.id}`} className="hover:text-green-700">الترجمة</Link>
                     </div>
@@ -283,7 +287,6 @@ export default function GwamhBrowser({
                 {gamhId === 1 ? 'آثار الصحابي (موقوفات)' : 'آثار التابعي (مقطوعات)'}
                 {' · '}
                 {total.toLocaleString('ar-EG')} رواية
-                {matchScope === 'chain' ? ' (في أثناء السند)' : ''}
               </p>
             </div>
             <button
@@ -297,7 +300,7 @@ export default function GwamhBrowser({
 
           {hadiths.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">
-              لا توجد {gamhId === 1 ? 'موقوفات' : 'مقطوعات'} مسجلة لهذا الراوي
+              لا توجد آثار مسندة مباشرة لهذا الراوي في هذا التصنيف
             </p>
           ) : (
             <div className="space-y-2.5">

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import pool from '@/lib/db'
-import { LEXICON_SCOPE_CTE } from '@/lib/ghareeb'
+import { buildLexiconHadithWhere } from '@/lib/ghareeb'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,60 +20,44 @@ export async function GET(
   const offset = (page - 1) * limit
 
   try {
-    const itemRes = await pool.query(
-      `SELECT id, text, lexicon_id FROM lexicon_items WHERE id = $1`,
+    const itemRes = await pool.query<{ id: number; text: string; lexicon_id: number; is_leaf: boolean }>(
+      `SELECT id, text, lexicon_id, is_leaf FROM lexicon_items WHERE id = $1`,
       [itemId]
     )
-    if (!itemRes.rows[0]) {
+    const item = itemRes.rows[0]
+    if (!item) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const countRes = await pool.query<{ total: number }>(
-      `WITH ${LEXICON_SCOPE_CTE},
-       refs AS (
-         SELECT lh.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
+    const filter = buildLexiconHadithWhere(item)
+    if (!filter) {
+      return NextResponse.json({ item, hadiths: [], total: 0, page, limit })
+    }
 
-         UNION
+    const limIdx = filter.params.length + 1
+    const offIdx = filter.params.length + 2
 
-         SELECT hsl.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
-         JOIN hadith_service_links hsl ON hsl.service_content_id = lh.hadith_id
-       )
-       SELECT COUNT(DISTINCT h.main_id)::int AS total
-       FROM refs
-       JOIN hadith_toc h ON h.main_id = refs.hadith_id`,
-      [itemId]
-    )
-
-    const hadithRes = await pool.query(
-      `WITH ${LEXICON_SCOPE_CTE},
-       refs AS (
-         SELECT lh.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
-
-         UNION
-
-         SELECT hsl.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
-         JOIN hadith_service_links hsl ON hsl.service_content_id = lh.hadith_id
-       )
-       SELECT DISTINCT h.main_id, h.book_id, b.title AS book_title,
-              h.tarf, h.part_num, h.page_num, h.tarqeem_harf
-       FROM refs
-       JOIN hadith_toc h ON h.main_id = refs.hadith_id
-       JOIN books b ON b.id = h.book_id
-       ORDER BY b.title, h.main_id
-       LIMIT $2 OFFSET $3`,
-      [itemId, limit, offset]
-    )
+    const [countRes, hadithRes] = await Promise.all([
+      pool.query<{ total: number }>(
+        `SELECT COUNT(*)::int AS total
+         FROM hadith_toc ht
+         WHERE ${filter.whereSql}`,
+        filter.params
+      ),
+      pool.query(
+        `SELECT ht.main_id, ht.book_id, b.title AS book_title,
+                ht.tarf, ht.part_num, ht.page_num, ht.tarqeem_harf
+         FROM hadith_toc ht
+         JOIN books b ON b.id = ht.book_id
+         WHERE ${filter.whereSql}
+         ORDER BY b.tarteeb ASC NULLS LAST, ht.main_id ASC
+         LIMIT $${limIdx} OFFSET $${offIdx}`,
+        [...filter.params, limit, offset]
+      ),
+    ])
 
     return NextResponse.json({
-      item: itemRes.rows[0],
+      item,
       hadiths: hadithRes.rows,
       total: countRes.rows[0]?.total ?? 0,
       page,

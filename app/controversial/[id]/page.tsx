@@ -14,6 +14,18 @@ interface TreeNode {
   right_value: number
 }
 
+interface LinkedHadith {
+  main_id: number
+  book_title: string
+  tarf: string | null
+  tarqeem_harf: string | null
+  tarqeem_matboa1: string | null
+}
+
+function cleanTarf(raw: string | null): string {
+  return (raw || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 interface ContentLink {
   service_main_id: number
   book_name: string | null
@@ -67,18 +79,48 @@ export default async function ControversialNodePage({
     [nodeId]
   )
 
-  // If leaf: get service_content links
+  // If leaf: get service_content links AND Asl (11,14) + Mukhalef (12,13) linked hadiths (like Windows CDlgAppMokhtalaf)
   let contentLinks: ContentLink[] = []
+  let aslHadiths: LinkedHadith[] = []
+  let mokhalefHadiths: LinkedHadith[] = []
   if (node.is_leaf) {
-    const linksRes = await pool.query<ContentLink>(
-      `SELECT hcd.service_main_id,
-              hsc.book_name, hsc.section_text, hsc.part_text, hsc.part_num, hsc.page_num
-       FROM hadith_controversial_descriptions hcd
-       LEFT JOIN hadith_service_content hsc ON hsc.id = hcd.service_main_id
-       WHERE hcd.node_id = $1`,
-      [nodeId]
-    )
+    const [linksRes, aslRes, mokhRes] = await Promise.all([
+      pool.query<ContentLink>(
+        `SELECT hcd.service_main_id,
+                hsc.book_name, hsc.section_text, hsc.part_text, hsc.part_num, hsc.page_num
+         FROM hadith_controversial_descriptions hcd
+         LEFT JOIN hadith_service_content hsc ON hsc.id = hcd.service_main_id
+         WHERE hcd.node_id = $1`,
+        [nodeId]
+      ),
+      pool.query<LinkedHadith>(
+        `SELECT DISTINCT ON (ht.main_id)
+                ht.main_id, b.title AS book_title, ht.tarf, ht.tarqeem_harf, ht.tarqeem_matboa1
+         FROM hadith_controversial_descriptions hcd
+         JOIN hadith_service_links hsl ON hsl.service_content_id = hcd.service_main_id AND hsl.type_id IN (11, 14)
+         JOIN hadith_toc ht ON ht.main_id = hsl.hadith_id AND ht.is_leaf = true AND ht.is_paragraph = true
+         JOIN books b ON b.id = ht.book_id
+         WHERE hcd.node_id = $1
+         ORDER BY ht.main_id ASC
+         LIMIT 40`,
+        [nodeId]
+      ).catch(() => ({ rows: [] as LinkedHadith[] })),
+      pool.query<LinkedHadith>(
+        `SELECT DISTINCT ON (ht.main_id)
+                ht.main_id, b.title AS book_title, ht.tarf, ht.tarqeem_harf, ht.tarqeem_matboa1
+         FROM hadith_controversial_descriptions hcd
+         JOIN hadith_service_links hsl ON hsl.service_content_id = hcd.service_main_id AND hsl.type_id IN (12, 13)
+         JOIN hadith_toc ht ON ht.main_id = hsl.hadith_id AND ht.is_leaf = true AND ht.is_paragraph = true
+         JOIN books b ON b.id = ht.book_id
+         WHERE hcd.node_id = $1
+         ORDER BY ht.main_id ASC
+         LIMIT 40`,
+        [nodeId]
+      ).catch(() => ({ rows: [] as LinkedHadith[] })),
+    ])
     contentLinks = linksRes.rows
+    aslHadiths = aslRes.rows
+    mokhalefHadiths = mokhRes.rows
   }
 
   const children = childrenRes.rows as (TreeNode & { leaf_count: number })[]
@@ -154,6 +196,65 @@ export default async function ControversialNodePage({
         </section>
       )}
 
+      {/* Linked Asl (11,14) & Mukhalef (12,13) hadiths (matches Windows CDlgAppMokhtalaf) */}
+      {node.is_leaf && aslHadiths.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-green-900 mb-3 pb-2 border-b border-gray-100">
+            الأحاديث الأصل ({aslHadiths.length})
+          </h2>
+          <div className="space-y-2">
+            {aslHadiths.map(h => (
+              <Link
+                key={`asl-${h.main_id}`}
+                href={`/hadith/${h.main_id}`}
+                className="block bg-white border border-green-100 rounded-xl px-4 py-3 hover:border-green-300 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xs font-semibold text-green-800">{h.book_title}</span>
+                  {(h.tarqeem_matboa1 || h.tarqeem_harf) && (
+                    <span className="text-xs text-gray-400">
+                      {(h.tarqeem_matboa1 || h.tarqeem_harf || '').trim()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                  {cleanTarf(h.tarf) || `حديث ${h.main_id}`}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {node.is_leaf && mokhalefHadiths.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-amber-900 mb-3 pb-2 border-b border-gray-100">
+            الأحاديث المخالفة ({mokhalefHadiths.length})
+          </h2>
+          <div className="space-y-2">
+            {mokhalefHadiths.map(h => (
+              <Link
+                key={`mokh-${h.main_id}`}
+                href={`/hadith/${h.main_id}`}
+                className="block bg-white border border-amber-100 rounded-xl px-4 py-3 hover:border-amber-300 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xs font-semibold text-amber-800">{h.book_title}</span>
+                  {(h.tarqeem_matboa1 || h.tarqeem_harf) && (
+                    <span className="text-xs text-gray-400">
+                      {(h.tarqeem_matboa1 || h.tarqeem_harf || '').trim()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
+                  {cleanTarf(h.tarf) || `حديث ${h.main_id}`}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Content links (leaf node) */}
       {node.is_leaf && contentLinks.length > 0 && (
         <section className="mb-8">
@@ -189,7 +290,7 @@ export default async function ControversialNodePage({
         </section>
       )}
 
-      {node.is_leaf && contentLinks.length === 0 && (
+      {node.is_leaf && contentLinks.length === 0 && aslHadiths.length === 0 && mokhalefHadiths.length === 0 && (
         <div className="bg-gray-50 rounded-xl border border-gray-100 p-8 text-center text-gray-400 text-sm">
           لا توجد مصادر مرتبطة بهذه المسألة
         </div>

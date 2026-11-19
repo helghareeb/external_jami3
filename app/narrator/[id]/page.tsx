@@ -3,10 +3,10 @@ import Link from '@/app/components/Link'
 import pool from '@/lib/db'
 import NarratorHadiths from '@/app/components/NarratorHadiths'
 import NarratorExport from '@/app/components/NarratorExport'
-import CompareNarratorPicker from '@/app/components/CompareNarratorPicker'
+// DEFERRED (web-only enhancement — not in legacy Windows app): import CompareNarratorPicker from '@/app/components/CompareNarratorPicker'
 import SaveToLibrary from '@/app/components/SaveToLibrary'
 import HadithNote from '@/app/components/HadithNote'
-import NarratorTopics from '@/app/components/NarratorTopics'
+// DEFERRED (web-only enhancement — not in legacy Windows app): import NarratorTopics from '@/app/components/NarratorTopics'
 import BrandMark from '@/app/components/BrandMark'
 import UiIcon from '@/app/components/UiIcon'
 import { narratorMeta } from '@/lib/entityMeta'
@@ -76,7 +76,7 @@ export default async function NarratorPage({
   const narratorId = parseInt(id, 10)
   if (isNaN(narratorId)) notFound()
 
-  const [narratorRes, booksRes, studentsRes, teachersRes, criticismRes, biographyRes, gradeStatsRes, specialRelRes, chainCountRes, chainDepthRes, peerNarratorsRes, chainPosRes, nameFormsRes] = await Promise.all([
+  const [narratorRes, booksRes, studentsRes, teachersRes, criticismRes, biographyRes, gradeStatsRes, specialRelRes, nameFormsRes] = await Promise.all([
     pool.query<Narrator>(
       `SELECT id, name, abb_name, esm_shuhra, kunia, laqab, nasab,
               tabaqa, tabaqa_num, birth_year, death_year, death_year_num,
@@ -174,6 +174,7 @@ export default async function NarratorPage({
        LIMIT 100`,
       [narratorId]
     ).catch(() => ({ rows: [] })),
+    /* DEFERRED (web-only enhancement — not in legacy Windows app): web analytics queries
     // Chain count via GIN index — how many isnad chains contain this narrator
     pool.query<{ count: string }>(
       `SELECT COUNT(*)::text as count FROM isnad_chains WHERE $1 = ANY(narrator_id_array)`,
@@ -217,6 +218,7 @@ export default async function NarratorPage({
        LIMIT 20`,
       [narratorId]
     ).catch(() => ({ rows: [] })),
+    */
     pool.query<{ rawy_text: string }>(
       `SELECT DISTINCT rawy_text_shape AS rawy_text
        FROM narrator_name_forms
@@ -229,17 +231,11 @@ export default async function NarratorPage({
   if (narratorRes.rows.length === 0) notFound()
 
   const narrator = narratorRes.rows[0]
-  const chainCount = parseInt(chainCountRes.rows[0]?.count || '0')
   const nameForms = nameFormsRes.rows
   const books = booksRes.rows
   const gradeStats: Array<{ garh_label: string; cnt: number }> = gradeStatsRes.rows
   const teachers = studentsRes.rows
   const students = teachersRes.rows
-  const peerNarrators: PeerNarrator[] = (peerNarratorsRes as { rows: PeerNarrator[] }).rows
-  const chainDepthRows: Array<{ chain_length: number; cnt: string }> = (chainDepthRes as { rows: Array<{ chain_length: number; cnt: string }> }).rows
-  const totalChainDepthCount = chainDepthRows.reduce((s, r) => s + parseInt(r.cnt), 0)
-  const chainPosRows: Array<{ pos: number; cnt: string }> = (chainPosRes as { rows: Array<{ pos: number; cnt: string }> }).rows
-  const totalChainPosCount = chainPosRows.reduce((s, r) => s + parseInt(r.cnt), 0)
 
   // Group special relations by type
   type SpecialRel = { relation_type_text: string; other_id: number; other_name: string; is_sheikh: boolean }
@@ -292,6 +288,7 @@ export default async function NarratorPage({
             <h1 className="text-lg font-bold text-[#F8F1E4]">موسوعة الحديث الشريف</h1>
           </div>
           <div className="flex w-full min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 sm:w-auto sm:flex-none">
+            {/* DEFERRED (web-only enhancement — not in legacy Windows app):
             <Link href={`/narrators/chain-filter?seed=${narratorId}`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
               تتبع الإسناد
             </Link>
@@ -304,15 +301,14 @@ export default async function NarratorPage({
             <Link href={`/narrator/${narratorId}/reliability`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
               الموثوقية
             </Link>
+            */}
             <Link href={`/narrator/${narratorId}/teachers-list`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
               {narrator.is_female ? 'روت عن' : 'روى عن'}
             </Link>
             <Link href={`/narrator/${narratorId}/students-list`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
               {narrator.is_female ? 'روى عنها' : 'روى عنه'}
             </Link>
-            <Link href={`/narrator/${narratorId}/peer-network`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
-              الشبكة
-            </Link>
+            {/* DEFERRED: <Link href={`/narrator/${narratorId}/peer-network`}>الشبكة</Link> */}
             <Link href={`/scholar/${narratorId}`} className="text-[#E6C77A] hover:text-[#FFFDF7] text-xs transition-colors border border-[#C9A96B]/45 px-2 py-1 rounded-full">
               {narrator.is_female ? 'أحكامها' : 'أحكامه'}
             </Link>
@@ -355,10 +351,12 @@ export default async function NarratorPage({
             ) : <span />}
             <div className="flex items-center gap-2 flex-wrap">
               <SaveToLibrary kind="narrator" itemRef={String(narrator.id)} label={narrator.abb_name || narrator.name} />
+              {/* DEFERRED (web-only enhancement — not in legacy Windows app):
               <CompareNarratorPicker
                 currentNarratorId={narrator.id}
                 currentNarratorName={narrator.abb_name || narrator.name}
               />
+              */}
               <NarratorExport
                 narrator={narrator}
                 criticism={criticism}
@@ -476,6 +474,7 @@ export default async function NarratorPage({
                 <span className="text-green-800 font-bold">{narrator.hadiths_count.toLocaleString('ar-EG')}</span>
               </div>
             )}
+            {/* DEFERRED (web-only enhancement — not in legacy Windows app): chainCount, chainDepthRows, chainPosRows
             {chainCount > 0 && (
               <div className="flex gap-2">
                 <span className="text-gray-400 min-w-24">عدد الأسانيد</span>
@@ -525,6 +524,7 @@ export default async function NarratorPage({
                 </div>
               </div>
             )}
+            */}
             {nameForms.length > 0 && (
               <div className="flex gap-2 col-span-2 border-t border-gray-100 pt-3">
                 <span className="text-gray-400 min-w-24 shrink-0">أشكال الاسم</span>
@@ -635,10 +635,12 @@ export default async function NarratorPage({
                   className="text-xs text-gray-500 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors">
                   مصطلحات الجرح والتعديل
                 </Link>
+                {/* DEFERRED (web-only enhancement — not in legacy Windows app):
                 <Link href={`/narrator/${narratorId}/criticism-history`}
                   className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-full hover:bg-indigo-100 transition-colors">
                   التسلسل الزمني للأحكام
                 </Link>
+                */}
               </div>
             </div>
             {/* Grade consensus summary */}
@@ -764,7 +766,7 @@ export default async function NarratorPage({
           )}
         </div>
 
-        {/* Academic peer narrators — who studied in the same circles */}
+        {/* DEFERRED (web-only enhancement — not in legacy Windows app): الدائرة العلمية & التوزيع الموضوعي للأحاديث
         {peerNarrators.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-teal-100 p-6">
             <h3 className="text-lg font-bold text-teal-900 mb-1 flex items-center gap-2">
@@ -795,11 +797,11 @@ export default async function NarratorPage({
           </div>
         )}
 
-        {/* Topic distribution — lazy loaded */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-bold text-green-900 mb-4">التوزيع الموضوعي للأحاديث</h2>
           <NarratorTopics narratorId={narratorId} />
         </div>
+        */}
 
         {/* Hadiths in isnad chain — lazy loaded */}
         <NarratorHadiths narratorId={narratorId} narratorName={narrator.abb_name || narrator.name} />

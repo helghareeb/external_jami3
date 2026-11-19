@@ -31,8 +31,8 @@ function gradeColor(grade: string | null) {
 }
 
 export const metadata = pageMeta({
-  title: 'أنواع علاقات الرواة',
-  description: 'تصنيفات العلاقات بين الرواة، مع الرواة المنتسبين إلى كل نوع.',
+  title: 'تصنيفات خاصة بالرواة',
+  description: 'تصنيفات العلاقات الخاصة بين الرواة، مع الرواة المنتسبين إلى كل تصنيف.',
   path: '/narrator-types',
 })
 
@@ -94,9 +94,9 @@ export default async function NarratorTypesPage({
   return (
     <div dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-green-900">أنواع علاقات الرواة</h1>
+        <h1 className="text-2xl font-bold text-green-900">تصنيفات خاصة بالرواة</h1>
         <p className="text-sm text-gray-500 mt-1">
-          تصنيفات العلاقات بين الرواة المستخرجة من قاعدة البيانات — انقر على نوع لاستعراض الرواة المنتسبين إليه
+          تصنيفات العلاقات بين الرواة المستخرجة من قاعدة البيانات — انقر على تصنيف لاستعراض الرواة المنتسبين إليه
         </p>
       </div>
 

@@ -4,7 +4,7 @@ import pool from '@/lib/db'
 import Link from '@/app/components/Link'
 import { notFound } from 'next/navigation'
 import LexiconHadithList from '../LexiconHadithList'
-import { LEXICON_SCOPE_CTE } from '@/lib/ghareeb'
+import { buildLexiconHadithWhere } from '@/lib/ghareeb'
 import { lexiconMeta } from '@/lib/entityMeta'
 
 interface LexiconItem {
@@ -62,7 +62,7 @@ export default async function LexiconItemPage({
   const itemId = parseInt(id)
   if (isNaN(itemId)) notFound()
 
-  const [itemRes, childrenRes, hadithCountRes] = await Promise.all([
+  const [itemRes, childrenRes] = await Promise.all([
     pool.query<LexiconItem>(
       `SELECT li.*,
               parent.text         AS parent_text,
@@ -85,27 +85,20 @@ export default async function LexiconItemPage({
        ORDER BY li.left_value`,
       [itemId]
     ),
-    pool.query<{ total: number }>(
-      `WITH ${LEXICON_SCOPE_CTE},
-       refs AS (
-         SELECT lh.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
-         UNION
-         SELECT hsl.hadith_id
-         FROM lexicon_hadith lh
-         JOIN lexicon_scope ls ON ls.id = lh.lexicon_item_id
-         JOIN hadith_service_links hsl ON hsl.service_content_id = lh.hadith_id
-       )
-       SELECT COUNT(DISTINCT h.main_id)::int AS total
-       FROM refs
-       JOIN hadith_toc h ON h.main_id = refs.hadith_id`,
-      [itemId]
-    ),
   ])
 
   if (!itemRes.rows[0]) notFound()
   const item = itemRes.rows[0]
+
+  const hadithFilter = buildLexiconHadithWhere(item)
+  const hadithCountRes = hadithFilter
+    ? await pool
+        .query<{ total: number }>(
+          `SELECT COUNT(*)::int AS total FROM hadith_toc ht WHERE ${hadithFilter.whereSql}`,
+          hadithFilter.params
+        )
+        .catch(() => ({ rows: [{ total: 0 }] }))
+    : { rows: [{ total: 0 }] }
 
   // lexicon_hadith.hadith_id references hadith_service_content.id (scholarly text passages)
   const contentRes = await pool.query<ContentRef>(

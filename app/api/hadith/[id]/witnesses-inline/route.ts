@@ -11,39 +11,53 @@ export async function GET(
   const hadithId = parseInt(id)
   if (isNaN(hadithId)) return NextResponse.json({ error: 'invalid id' }, { status: 400 })
 
-  const groupRes = await pool.query<{ group_id: number }>(
-    `SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
-    [hadithId]
-  ).catch(() => ({ rows: [] as Array<{ group_id: number }> }))
+  const [groupRes, matnGroupRes] = await Promise.all([
+    pool.query<{ group_id: number }>(
+      `SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
+      [hadithId]
+    ).catch(() => ({ rows: [] as Array<{ group_id: number }> })),
+    pool.query<{ group_id: number }>(
+      `SELECT DISTINCT group_id FROM hadith_group_matn WHERE hadith_main_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
+      [hadithId]
+    ).catch(() => ({ rows: [] as Array<{ group_id: number }> })),
+  ])
 
   const groupIds = groupRes.rows.map(r => Number(r.group_id))
-  const groupId = groupIds[0] ?? null
-  if (groupIds.length === 0) return NextResponse.json({ witnesses: [], groupId: null })
+  const matnGroupIds = matnGroupRes.rows.map(r => Number(r.group_id))
+  const groupId = matnGroupIds[0] ?? groupIds[0] ?? null
+  if (matnGroupIds.length === 0) return NextResponse.json({ witnesses: [], groupId: null, groupIds: [] })
 
+  // Match Windows Catalog.xml view `Shwahed`: HGamhAlMatn \ HTakhreeg
   const witnessesRes = await pool.query(
-    `SELECT DISTINCT ON (COALESCE(comp.id::text, t2.hadith_id::text))
+    `SELECT DISTINCT ON (COALESCE(comp.id::text, g2.hadith_main_id::text))
            comp.id AS companion_id,
            comp.name AS companion_name, comp.abb_name AS companion_abb,
-           t2.hadith_id,
+           g2.hadith_main_id AS hadith_id,
            regexp_replace(coalesce(ht.tarf,''), '<[^>]+>', ' ', 'g') AS tarf,
            b.title AS book_title, b.takhrij_author, b.takhrij_death,
            (
              SELECT COUNT(DISTINCT ic3.id)::int
              FROM isnad_hadiths ih3
              JOIN isnad_chains ic3 ON ic3.id = ih3.isnad_id
-             WHERE ih3.hadith_id = t2.hadith_id
+             WHERE ih3.hadith_id = g2.hadith_main_id
            ) AS chain_count
-     FROM takhrij t2
-     JOIN hadith_toc ht ON ht.main_id = t2.hadith_id AND ht.is_leaf = true AND ht.is_paragraph = true
+     FROM hadith_group_matn g2
+     JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
      JOIN books b ON b.id = ht.book_id
-     LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = t2.hadith_id
+     LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
      LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
      LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
-     WHERE t2.group_id = ANY($1::int[]) AND t2.hadith_id != $2
-     ORDER BY COALESCE(comp.id::text, t2.hadith_id::text), b.takhrij_death ASC NULLS LAST
+     WHERE g2.group_id = ANY($1::int[])
+       AND g2.hadith_main_id != $2
+       AND NOT (g2.hadith_main_id IN (
+         SELECT t2.hadith_id
+         FROM takhrij t2
+         WHERE t2.group_id = ANY($3::int[])
+       ))
+     ORDER BY COALESCE(comp.id::text, g2.hadith_main_id::text), b.takhrij_death ASC NULLS LAST
      LIMIT 60`,
-    [groupIds, hadithId]
+    [matnGroupIds, hadithId, groupIds]
   ).catch(() => ({ rows: [] }))
 
-  return NextResponse.json({ witnesses: witnessesRes.rows, groupId, groupIds })
+  return NextResponse.json({ witnesses: witnessesRes.rows, groupId, groupIds: matnGroupIds })
 }

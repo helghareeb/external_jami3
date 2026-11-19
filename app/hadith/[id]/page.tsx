@@ -14,11 +14,14 @@ import TakhrijSection, { TakhrijBadges } from '@/app/components/TakhrijSection'
 import MatnGroupSection from '@/app/components/MatnGroupSection'
 import { sectionBadgeSlots } from '@/app/components/SectionBadges'
 import { activeServiceSections, INLINE_SERVICE_CONFIGS } from '@/app/components/HadithServiceSection'
+/* DEFERRED (web-only enhancement — not in legacy Windows app): Dorar UI & Sunnah English translation
 import DorarJudgment from '@/app/components/DorarJudgment'
 import type { DorarRuling } from '@/app/components/DorarJudgment'
 import EnglishTranslation, { type EnglishTranslationData } from '@/app/components/EnglishTranslation'
+import { matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
+*/
+import { DORAR_SOURCES } from '@/lib/dorar'
 import { citeItems } from '@/lib/citation'
-import { DORAR_SOURCES, matnSearchWords, dorarSearchUrl } from '@/lib/dorar'
 import {
   parseSanadNarratorSegments,
   sanadSegmentsHaveNarrators,
@@ -101,7 +104,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   const { id } = await params
   const mainId = parseInt(id)
 
-  const [hadithRes, judgmentsRes, sourcesRes, isnadRes, takhrijBooksRes, subjectsRes, relatedRes, takhrijSummaryRes] = await Promise.all([
+  const [hadithRes, judgmentsRes, sourcesRes, isnadRes, takhrijBooksRes, subjectsRes, takhrijSummaryRes] = await Promise.all([
     pool.query(
       `SELECT h.*, b.title as book_title, b.takhrij_author, b.takhrij_death, b.print1_edition,
               hs.takhreg, hs.compound_matn, hs.rwah, hs.asnad, hs.shawahed,
@@ -179,6 +182,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
        LIMIT 300`,
       [mainId]
     ).catch(() => ({ rows: [] })),
+    /* DEFERRED (web-only enhancement — not in legacy Windows app): synthetic topic-overlap related hadiths
     pool.query(
       `SELECT DISTINCT ht.main_id, ht.tarf, b.title as book_title
        FROM hadith_subjects hs_other
@@ -191,6 +195,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
        LIMIT 8`,
       [mainId]
     ).catch(() => ({ rows: [] })),
+    */
     pool.query(
       `SELECT
          (SELECT COALESCE(ic.narrator_id_array[1], 0)
@@ -505,7 +510,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   const takhrijBooks = (takhrijBooksRes as { rows: Array<{ title: string }> }).rows.map(r => r.title)
   const takhrijSummary = takhrijSummaryRes as { mutabaatCount: number; shawahidCount: number }
   const subjects = (subjectsRes as { rows: Array<{ id: number; title: string }> }).rows
-  const relatedHadiths = (relatedRes as { rows: Array<{ main_id: number; tarf: string | null; book_title: string }> }).rows
+  const relatedHadiths: Array<{ main_id: number; tarf: string | null; book_title: string }> = []
   // Each saying's source is its own link row (keyed by say_id), so a saying can no longer be shown
   // under a book it is not linked to and the same text can no longer print under three books.
   type SrcRow = { say_id: number; service_main_id: number; is_book_toc: boolean; book_name: string; part_num: number; page_num: number }
@@ -625,6 +630,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
   ).catch(() => ({ rows: [] as Array<{ node_id: number; text: string; is_leaf: boolean }> }))
   const musakaratNodes = musakaratRes.rows
 
+  /* DEFERRED (web-only enhancement — not in legacy Windows app): external Dorar rulings & Sunnah.com English translation
   // Dorar's rulings, fetched offline by scripts/dorar-crawl.mjs (table absent until its first run)
   const dorarSources = DORAR_SOURCES[Number(h.book_id)]
   // The key the rulings were filed under (see generateMetadata): stable when the printed number changes
@@ -650,11 +656,12 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
      WHERE t.main_id = $1 AND t.source = 'sunnah' AND t.lang = 'en'`,
     [mainId]
   ).catch(() => ({ rows: [] as EnglishTranslationData[] }))).rows[0]
+  */
 
   return (
     <>
       <HadithSidebarLayout
-        translationSlot={english ? <EnglishTranslation data={english} /> : undefined}
+        /* translationSlot={english ? <EnglishTranslation data={english} /> : undefined} */
         relatedTopicsSlot={musakaratNodes.length > 0 && (
         <div className="hadith-related-topics mb-5 flex items-center gap-2 flex-wrap border-t border-border pt-4">
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600">
@@ -663,7 +670,7 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
           {musakaratNodes.map(n => (
             <Link
               key={n.node_id}
-              href={`/topics/contradictions/node/${n.node_id}`}
+              href={`/controversial/${n.node_id}`}
               className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full border border-amber-200 hover:bg-amber-200"
             >
               {n.text}
@@ -696,9 +703,11 @@ export default async function HadithPage({ params }: { params: Promise<{ id: str
           ...sectionBadgeSlots(mainId, ['matn-similarity', 'variants', ...activeServiceSections(hadithServices).map(c => c.id)]),
           takhrij: <TakhrijBadges hadithId={mainId} />,
         }}
+        /* DEFERRED (web-only enhancement — not in legacy Windows app):
         dorarSlot={dorarRulings.length > 0 && dorarSources
           ? <DorarJudgment rulings={dorarRulings} searchUrl={dorarSearchUrl(matnSearchWords(h.content as string), dorarSources)} />
           : undefined}
+        */
         prevHadith={prevHadith}
         nextHadith={nextHadith}
       />

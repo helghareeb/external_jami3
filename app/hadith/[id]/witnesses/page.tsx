@@ -31,7 +31,7 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
   const hadithId = parseInt(id)
   if (isNaN(hadithId)) notFound()
 
-  const [hadithRes, groupRes] = await Promise.all([
+  const [hadithRes, groupRes, matnGroupRes] = await Promise.all([
     pool.query(
       `SELECT ht.main_id,
               regexp_replace(coalesce(ht.tarf,''), '<[^>]+>', ' ', 'g') AS tarf,
@@ -46,13 +46,18 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
       `SELECT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
       [hadithId]
     ),
+    pool.query<{ group_id: number }>(
+      `SELECT DISTINCT group_id FROM hadith_group_matn WHERE hadith_main_id = $1 AND group_id IS NOT NULL ORDER BY group_id`,
+      [hadithId]
+    ),
   ])
 
   const hadith = hadithRes.rows[0]
   if (!hadith) notFound()
 
   const groupIds = groupRes.rows.map(row => Number(row.group_id))
-  if (groupIds.length === 0) {
+  const matnGroupIds = matnGroupRes.rows.map(row => Number(row.group_id))
+  if (matnGroupIds.length === 0) {
     return (
       <div dir="rtl">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 flex-wrap">
@@ -66,7 +71,7 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
         <div className="bg-gray-50 rounded-xl border border-gray-100 p-8 text-center text-gray-500">
           {hadith.has_witness_flag
             ? 'المصدر يشير إلى وجود شواهد لهذا الحديث، لكن علاقات المجموعة التي تربطها بالروايات الأخرى غير مخزنة في الجداول الحالية.'
-            : 'لم يُعثر على تخريج مشترك لهذا الحديث في قاعدة البيانات'}
+            : 'لم يُعثر على شواهد أو متابعات لهذا الحديث في قاعدة البيانات'}
         </div>
         <div className="mt-4">
           <Link href={`/hadith/${hadithId}`} className="text-green-700 hover:underline text-sm">← عودة للحديث</Link>
@@ -75,28 +80,35 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
     )
   }
 
+  // Match Windows Catalog.xml view `Shwahed`: HGamhAlMatn \ HTakhreeg
   const witnessesRes = await pool.query<WitnessHadith>(
-    `SELECT DISTINCT ON (COALESCE(comp.id::text, t2.hadith_id::text))
+    `SELECT DISTINCT ON (COALESCE(comp.id::text, g2.hadith_main_id::text))
            comp.id AS companion_id,
            comp.name AS companion_name, comp.abb_name AS companion_abb,
-           t2.hadith_id,
+           g2.hadith_main_id AS hadith_id,
            regexp_replace(coalesce(ht.tarf,''), '<[^>]+>', ' ', 'g') AS tarf,
            b.title AS book_title, b.takhrij_author, b.takhrij_death,
            (
              SELECT COUNT(DISTINCT ic3.id)::int
              FROM isnad_hadiths ih3
              JOIN isnad_chains ic3 ON ic3.id = ih3.isnad_id
-             WHERE ih3.hadith_id = t2.hadith_id
+             WHERE ih3.hadith_id = g2.hadith_main_id
            ) AS chain_count
-     FROM takhrij t2
-     JOIN hadith_toc ht ON ht.main_id = t2.hadith_id AND ht.is_leaf = true AND ht.is_paragraph = true
+     FROM hadith_group_matn g2
+     JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
      JOIN books b ON b.id = ht.book_id
-     LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = t2.hadith_id
+     LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
      LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
      LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
-     WHERE t2.group_id = ANY($1::int[]) AND t2.hadith_id != $2
-     ORDER BY COALESCE(comp.id::text, t2.hadith_id::text), b.takhrij_death ASC NULLS LAST`,
-    [groupIds, hadithId]
+     WHERE g2.group_id = ANY($1::int[])
+       AND g2.hadith_main_id != $2
+       AND NOT (g2.hadith_main_id IN (
+         SELECT t2.hadith_id
+         FROM takhrij t2
+         WHERE t2.group_id = ANY($3::int[])
+       ))
+     ORDER BY COALESCE(comp.id::text, g2.hadith_main_id::text), b.takhrij_death ASC NULLS LAST`,
+    [matnGroupIds, hadithId, groupIds]
   ).catch(() => ({ rows: [] as WitnessHadith[] }))
 
   const witnesses = witnessesRes.rows

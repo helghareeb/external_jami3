@@ -16,13 +16,11 @@ export default async function AmthalPage() {
     `WITH proverb_links AS (
        SELECT DISTINCT
               hsl.hadith_id,
-              m.match[1]::int AS proverb_id,
+              hsl.reserve::int AS proverb_id,
               ht.chapter_text
        FROM hadith_service_links hsl
-       JOIN hadith_service_content hsc ON hsc.id = hsl.service_content_id
        JOIN hadith_toc ht ON ht.main_id = hsl.hadith_id
-       CROSS JOIN LATERAL regexp_matches(hsc.content, 'ربط="(77[0-9]+)"', 'g') AS m(match)
-       WHERE hsl.type_id = 4
+       WHERE hsl.type_id = 4 AND hsl.reserve IS NOT NULL AND hsl.reserve > 0
      )
      SELECT
        a.id,

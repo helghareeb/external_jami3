@@ -9,28 +9,28 @@ interface ServiceBook {
   title: string
   takhrij_author: string | null
   takhrij_death: number | null
+  section_name: string | null
   hadith_count: number
 }
 
-// Infer category from title keywords
-function inferCategory(title: string): {
-  label: string
-  color: string
-  bg: string
-  border: string
-} {
-  const t = title
-  if (/شرح|فتح|عمدة|إرشاد|توضيح|كشف|مفتاح|الإفصاح/.test(t))
-    return { label: 'شروح', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' }
-  if (/رجال|ثقات|ضعفاء|تهذيب|تقريب|الجرح|ميزان|لسان|كمال|إكمال|أسماء|معرفة الرواة|الكنى|التاريخ الكبير|التاريخ الصغير|الضعفاء|المتروك/.test(t))
-    return { label: 'كتب الرجال', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' }
-  if (/مصطلح|علوم الحديث|الباعث|اختصار|النخبة|تدريب|ألفية|نزهة|محاسن|أنواع/.test(t))
-    return { label: 'مصطلح الحديث', color: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-200' }
-  if (/معجم|مسالك|بلدان|الأماكن|جغرافي|أطراف/.test(t))
-    return { label: 'معاجم وجغرافيا', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' }
-  if (/تاريخ|طبقات|سير|وفيات|ذيل|مرآة/.test(t))
-    return { label: 'تواريخ وتراجم', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' }
-  return { label: 'مراجع أخرى', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' }
+// Style palette mapped strictly to legacy `sections.name` categories (no regex guessing)
+const SECTION_STYLE: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  'كتب الشروح':       { label: 'كتب الشروح',       color: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-200' },
+  'كتب الرجال':       { label: 'كتب الرجال',       color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+  'كتب العلل':        { label: 'كتب العلل',        color: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
+  'مصطلح الحديث':     { label: 'مصطلح الحديث',     color: 'text-teal-700',   bg: 'bg-teal-50',   border: 'border-teal-200' },
+  'علوم الحديث':      { label: 'علوم الحديث',      color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' },
+  'الغريب والمعاجم':  { label: 'الغريب والمعاجم',  color: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+  'كتب التخريج':      { label: 'كتب التخريج',      color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
+  'كتب السيرة':       { label: 'كتب السيرة',       color: 'text-rose-700',   bg: 'bg-rose-50',   border: 'border-rose-200' },
+  'كتب التفسير':      { label: 'كتب التفسير',      color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  'الطب النبوي':      { label: 'الطب النبوي',      color: 'text-cyan-700',   bg: 'bg-cyan-50',   border: 'border-cyan-200' },
+  'قراءات':           { label: 'قراءات',           color: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-200' },
+}
+
+function sectionBadgeStyle(sectionName: string | null) {
+  if (sectionName && SECTION_STYLE[sectionName]) return SECTION_STYLE[sectionName]
+  return { label: sectionName || 'مراجع أخرى', color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' }
 }
 
 function centuryLabel(c: number): string {
@@ -55,23 +55,36 @@ export default async function ServiceBooksPage({
   const orderSql =
     sort === 'title' ? 'b.title' :
     sort === 'hadiths' ? 'hadith_count DESC, b.title' :
-    'b.takhrij_death ASC NULLS LAST, b.title'
+    'COALESCE(NULLIF(b.takhrij_death, 0), a.death_date) ASC NULLS LAST, b.title'
 
   const { rows: books } = await pool.query<ServiceBook>(
-    `SELECT b.id, b.title, b.takhrij_author, b.takhrij_death,
+    `SELECT b.id, b.title,
+            COALESCE(NULLIF(b.takhrij_author, ''), NULLIF(a.short_name, ''), a.name) AS takhrij_author,
+            COALESCE(NULLIF(b.takhrij_death, 0), a.death_date) AS takhrij_death,
+            sec.section_name,
             COUNT(hsc.id)::int AS hadith_count
      FROM books b
+     LEFT JOIN authors a ON a.id = b.author_id
+     LEFT JOIN LATERAL (
+       SELECT s.name AS section_name
+       FROM section_books sb
+       JOIN sections s ON s.id = sb.section_id
+       WHERE sb.book_id = b.id AND s.left_value > 24 AND s.right_value < 49
+       ORDER BY s.left_value ASC
+       LIMIT 1
+     ) sec ON true
      LEFT JOIN hadith_service_content hsc ON hsc.book_id = b.id
-     WHERE b.id IN (SELECT DISTINCT book_id FROM hadith_service_content WHERE book_id IS NOT NULL)
-     GROUP BY b.id, b.title, b.takhrij_author, b.takhrij_death
+     WHERE sec.section_name IS NOT NULL
+        OR EXISTS (SELECT 1 FROM hadith_service_content h2 WHERE h2.book_id = b.id)
+     GROUP BY b.id, b.title, b.takhrij_author, b.takhrij_death, a.short_name, a.name, a.death_date, sec.section_name
      ORDER BY ${orderSql}`,
     []
   ).catch(() => ({ rows: [] as ServiceBook[] }))
 
-  // Annotate each book with its inferred category
+  // Annotate each book with its true `sections.name` category
   const annotated = books.map(b => ({
     ...b,
-    category: inferCategory(b.title),
+    category: sectionBadgeStyle(b.section_name),
   }))
 
   // Apply optional client-side category filter
@@ -160,9 +173,7 @@ export default async function ServiceBooksPage({
       {/* Info box */}
       <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-5 text-xs text-amber-800 leading-relaxed">
         <strong>ملاحظة منهجية: </strong>
-        هذا الفهرس يعرض الكتب التي تحوي مادة خدمة أو ترجمة أو شرحاً. ولا تعتمد قراءته على أن قيم القوة والترتيب
-        والشهرة تساوي صفراً: بعض هذه الكتب له تاريخ تراثي صحيح، وبعض قيمها غير مسجلة. الكتاب غير المؤرخ
-        أو صفّر تاريخه يوضع في مجموعة «غير مؤرخ» بدلاً من القرن الأول. التصنيف أمام كل عنوان استُنبط من العنوان وقد يحتاج مراجعة.
+        التصنيف الموضوعي وأسماء المؤلفين وتواريخ الوفيات مأخوذة مباشرة من جدولي الأقسام والمؤلفين في قاعدة البيانات (<code>sections</code> و<code>authors</code>) كما في التصنيف المعتمد بالموسوعة.
       </div>
 
       {/* Controls */}

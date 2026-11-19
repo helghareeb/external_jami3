@@ -1,429 +1,219 @@
 import pool from '@/lib/db'
 import Link from '@/app/components/Link'
-import UiIcon from '@/app/components/UiIcon'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'أقوال أهل العلم في علوم الحديث — جامع خادم الحرمين',
-  description: 'ألفاظ الجرح والتعديل، والعلماء الناقدون، وإحصاءات منظومة علم الرجال',
+  description: 'أقوال المحدثين وأئمة علوم الحديث في مسائل المصطلح وأصول الرواية (مرتبة حسب العالم والمصطلح)',
 }
 
-interface GradingTerm {
-  term_text: string
-  sort_order: number | null
-  is_taqreeb: boolean
+interface ExpressionScholarRow {
+  scientist_id: number
+  scholar_name: string
+  say_count: number
+  term_count: number
 }
 
-interface TopScholar {
-  scientist_name: string
-  eval_count: number
+interface ExpressionSayRow {
+  link_id: number
+  node_id: number
+  tree_id: number | null
+  term_text: string | null
+  say: string
+  service_main_id: number | null
+  book_name: string | null
+  part_num: number | null
+  page_num: number | null
 }
 
-interface Stats {
-  total_terms: number
-  total_pairs: number
-  taqreeb_count: number
-  jarh_count: number
-}
+export default async function HadithSciencesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scholar?: string; q?: string }>
+}) {
+  const sp = await searchParams
+  const requestedScholar = sp.scholar ? parseInt(sp.scholar, 10) || 0 : 0
+  const q = (sp.q || '').trim()
 
-export default async function HadithSciencesPage() {
-  const [termsRes, scholarsRes, statsRes] = await Promise.all([
-    pool.query<GradingTerm>(
-      `SELECT term_text, sort_order, is_taqreeb
-       FROM narrator_grading_terms
-       ORDER BY sort_order NULLS LAST, term_text
-       LIMIT 200`
-    ).catch(() => ({ rows: [] as GradingTerm[] })),
+  const scholarParams: string[] = []
+  let whereClause = ''
+  if (q) {
+    scholarParams.push(`%${q}%`)
+    whereClause = `WHERE COALESCE(NULLIF(n.abb_name, ''), n.name) ILIKE $1`
+  }
 
-    pool.query<TopScholar>(
-      `SELECT scientist_name, COUNT(*)::int AS eval_count
-       FROM narrator_scientists
-       WHERE scientist_name IS NOT NULL AND scientist_name != ''
-       GROUP BY scientist_name
-       ORDER BY eval_count DESC
-       LIMIT 30`
-    ).catch(() => ({ rows: [] as TopScholar[] })),
-
-    pool.query<Stats>(
-      `SELECT
-         COUNT(*)::int AS total_terms,
-         SUM(CASE WHEN is_taqreeb = true THEN 1 ELSE 0 END)::int AS taqreeb_count,
-         SUM(CASE WHEN is_taqreeb = false THEN 1 ELSE 0 END)::int AS jarh_count,
-         (SELECT COUNT(*)::int FROM narrator_scientists) AS total_pairs
-       FROM narrator_grading_terms`
-    ).catch(() => ({ rows: [{ total_terms: 0, total_pairs: 0, taqreeb_count: 0, jarh_count: 0 }] as Stats[] })),
+  const [scholarsRes, totalRes] = await Promise.all([
+    pool
+      .query<ExpressionScholarRow>(
+        `SELECT hes.scientist_id,
+                COALESCE(NULLIF(n.abb_name, ''), n.name) AS scholar_name,
+                COUNT(*)::int AS say_count,
+                COUNT(DISTINCT hes.node_id)::int AS term_count
+         FROM hadith_expressions_says hes
+         JOIN narrators n ON n.id = hes.scientist_id
+         ${whereClause}
+         GROUP BY hes.scientist_id, COALESCE(NULLIF(n.abb_name, ''), n.name)
+         ORDER BY say_count DESC, scholar_name ASC`,
+        scholarParams
+      )
+      .catch(() => ({ rows: [] as ExpressionScholarRow[] })),
+    pool
+      .query<{ total_says: number; total_scholars: number; total_terms: number }>(
+        `SELECT COUNT(*)::int AS total_says,
+                COUNT(DISTINCT scientist_id)::int AS total_scholars,
+                COUNT(DISTINCT node_id)::int AS total_terms
+         FROM hadith_expressions_says`
+      )
+      .catch(() => ({ rows: [{ total_says: 0, total_scholars: 0, total_terms: 0 }] })),
   ])
 
-  const allTerms = termsRes.rows
-  const taqreebTerms = allTerms.filter(t => t.is_taqreeb === true)
-  const jarhTerms = allTerms.filter(t => t.is_taqreeb === false)
   const scholars = scholarsRes.rows
-  const stats = statsRes.rows[0] ?? { total_terms: 0, total_pairs: 0, taqreeb_count: 0, jarh_count: 0 }
+  const stats = totalRes.rows[0] ?? { total_says: 0, total_scholars: 0, total_terms: 0 }
+  const activeScholar =
+    (requestedScholar > 0 ? scholars.find(s => s.scientist_id === requestedScholar) : null) ??
+    scholars[0] ??
+    null
 
-  const maxEvalCount = scholars[0]?.eval_count ?? 1
+  const sayings: ExpressionSayRow[] = activeScholar
+    ? (
+        await pool
+          .query<ExpressionSayRow>(
+            `SELECT hes.link_id,
+                    hes.node_id,
+                    het.id AS tree_id,
+                    het.text AS term_text,
+                    hes.say,
+                    hes.service_main_id,
+                    hsc.book_name,
+                    hsc.part_num,
+                    hsc.page_num
+             FROM hadith_expressions_says hes
+             LEFT JOIN hadith_expressions_tree het ON het.node_id = hes.node_id
+             LEFT JOIN hadith_service_content hsc ON hsc.id = hes.service_main_id
+             WHERE hes.scientist_id = $1
+             ORDER BY het.left_value ASC NULLS LAST, hes.link_id ASC`,
+            [activeScholar.scientist_id]
+          )
+          .catch(() => ({ rows: [] as ExpressionSayRow[] }))
+      ).rows
+    : []
 
   return (
-    <div dir="rtl" className="min-h-screen bg-amber-50">
-      {/* Header */}
-      <header className="bg-green-900 text-white shadow-lg">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-amber-200 hover:text-white text-sm transition-colors">
-            ← الرئيسية
-          </Link>
-          <h1 className="text-lg font-bold text-amber-100 text-center">
-            أقوال أهل العلم في علوم الحديث
-          </h1>
-          <Link href="/scholars" className="text-amber-200 hover:text-white text-sm transition-colors">
-            العلماء
-          </Link>
-        </div>
-      </header>
+    <div dir="rtl" className="max-w-6xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-green-900 mb-1">أقوال أهل العلم في علوم الحديث</h1>
+        <p className="text-sm text-gray-500">
+          {stats.total_says.toLocaleString('ar-EG')} قولاً عن {stats.total_scholars.toLocaleString('ar-EG')} إماماً في {stats.total_terms.toLocaleString('ar-EG')} مصطلحاً من مصطلحات علوم الحديث
+        </p>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-10">
-
-        {/* Page intro */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h2 className="text-xl font-bold text-green-900 mb-2">علم الجرح والتعديل</h2>
-          <p className="text-sm text-gray-600 leading-relaxed mb-4">
-            علم الجرح والتعديل من أشرف العلوم الإسلامية، يُعنى بدراسة أحوال رواة الحديث توثيقاً وتضعيفاً.
-            أفرد له العلماء مصنفات خاصة، وابتكروا ألفاظاً دقيقة للدلالة على درجات الرواة في الضبط والعدالة،
-            حتى صارت هذه الألفاظ منظومة اصطلاحية متكاملة تُميّز بين المراتب تمييزاً دقيقاً.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/narrators/jarh-terms"
-              className="text-xs px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-800 hover:bg-green-100 transition-colors">
-              درجات الرواة
-            </Link>
-            <Link href="/scholars/activity"
-              className="text-xs px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 transition-colors">
-              نشاط الناقدين
-            </Link>
-            <Link href="/scholars/judgment-search"
-              className="text-xs px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100 transition-colors">
-              البحث في الأحكام
-            </Link>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Right sidebar: Scholars list */}
+        <aside className="lg:col-span-4 ui-card overflow-hidden">
+          <div className="bg-green-900 text-white px-4 py-3 text-xs font-bold flex items-center justify-between">
+            <span>العلماء ({scholars.length.toLocaleString('ar-EG')})</span>
           </div>
-        </div>
-
-        {/* Section 3 — Statistics (shown first as summary) */}
-        <section>
-          <h2 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-green-700 rounded-full inline-block" />
-            إحصاءات الجرح والتعديل
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                num: Number(stats.total_terms).toLocaleString('ar-EG'),
-                label: 'ألفاظ الجرح والتعديل',
-                sub: 'في قاعدة المصطلحات',
-                color: 'border-green-200 bg-green-50',
-                numColor: 'text-green-900',
-              },
-              {
-                num: Number(stats.taqreeb_count).toLocaleString('ar-EG'),
-                label: 'ألفاظ التعديل',
-                sub: 'توثيق وتزكية',
-                color: 'border-amber-200 bg-amber-50',
-                numColor: 'text-amber-800',
-              },
-              {
-                num: Number(stats.jarh_count).toLocaleString('ar-EG'),
-                label: 'ألفاظ الجرح',
-                sub: 'تضعيف وطعن',
-                color: 'border-rose-200 bg-rose-50',
-                numColor: 'text-rose-800',
-              },
-              {
-                num: Number(stats.total_pairs).toLocaleString('ar-EG'),
-                label: 'تقييم للرواة',
-                sub: 'بين عالم وراوٍ',
-                color: 'border-indigo-200 bg-indigo-50',
-                numColor: 'text-indigo-900',
-              },
-            ].map((card, i) => (
-              <div key={i} className={`rounded-2xl border p-5 ${card.color}`}>
-                <div className={`text-2xl font-bold tabular-nums ${card.numColor}`}>{card.num}</div>
-                <div className="text-sm font-semibold text-gray-700 mt-1">{card.label}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{card.sub}</div>
-              </div>
-            ))}
+          <form action="/scholars/hadith-sciences" method="get" className="p-3 border-b border-gray-100 flex gap-2">
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="ابحث باسم العالم..."
+              className="flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs focus:outline-none focus:border-green-600"
+            />
+            <button
+              type="submit"
+              className="px-2.5 py-1.5 rounded-lg bg-green-800 text-white text-xs font-semibold hover:bg-green-700"
+            >
+              بحث
+            </button>
+          </form>
+          <div className="divide-y divide-gray-100 max-h-[70vh] overflow-y-auto">
+            {scholars.map(s => {
+              const active = activeScholar?.scientist_id === s.scientist_id
+              return (
+                <Link
+                  key={s.scientist_id}
+                  href={`/scholars/hadith-sciences?scholar=${s.scientist_id}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+                  className={`flex items-center justify-between gap-2 px-4 py-2.5 text-xs transition-colors ${
+                    active ? 'bg-green-50 border-r-4 border-green-700 font-bold' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-green-900 truncate">{s.scholar_name}</span>
+                  <span className="shrink-0 text-[11px] text-gray-500">
+                    {s.say_count.toLocaleString('ar-EG')} قول
+                  </span>
+                </Link>
+              )
+            })}
+            {scholars.length === 0 && (
+              <p className="p-6 text-center text-xs text-gray-400">لا توجد نتائج مطابقة</p>
+            )}
           </div>
+        </aside>
 
-          {/* Distribution bar */}
-          {(Number(stats.taqreeb_count) + Number(stats.jarh_count)) > 0 && (
-            <div className="mt-4 bg-white rounded-xl border border-gray-100 p-4">
-              <p className="text-xs text-gray-500 mb-2">توزيع الألفاظ بين التعديل والجرح</p>
-              <div className="flex rounded-full overflow-hidden h-4 gap-0.5">
-                {(() => {
-                  const total = Number(stats.taqreeb_count) + Number(stats.jarh_count)
-                  const tPct = total > 0 ? Math.round((Number(stats.taqreeb_count) / total) * 100) : 0
-                  const jPct = 100 - tPct
-                  return (
-                    <>
-                      <div
-                        className="bg-amber-400 h-4 flex items-center justify-center text-xs text-amber-900 font-semibold transition-all"
-                        style={{ width: `${tPct}%` }}
-                      >
-                        {tPct > 10 ? `تعديل ${tPct}%` : ''}
-                      </div>
-                      <div
-                        className="bg-rose-400 h-4 flex items-center justify-center text-xs text-white font-semibold transition-all"
-                        style={{ width: `${jPct}%` }}
-                      >
-                        {jPct > 10 ? `جرح ${jPct}%` : ''}
-                      </div>
-                    </>
-                  )
-                })()}
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>ألفاظ التعديل ← الأرفع قدراً في المنظومة الاصطلاحية</span>
-                <span>→ ألفاظ الجرح</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Section 1 — Grading Terms */}
-        <section>
-          <h2 className="text-lg font-bold text-green-900 mb-1 flex items-center gap-2">
-            <span className="w-1 h-6 bg-amber-500 rounded-full inline-block" />
-            ألفاظ الجرح والتعديل
-          </h2>
-          <p className="text-sm text-gray-500 mb-5 leading-relaxed">
-            الألفاظ الاصطلاحية التي استخدمها أئمة النقد لتقييم الرواة — مرتبة من أعلى درجات التوثيق إلى أشد ألفاظ الجرح.
-            صنّف العلماء هذه الألفاظ في مراتب دقيقة؛ فمنها ما يدل على الرفعة والإتقان، ومنها ما ينبئ بالضعف والترك.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* تعديل terms */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-amber-800 bg-amber-100 border border-amber-200 px-3 py-1 rounded-full">
-                  ألفاظ التعديل
-                </span>
-                <span className="text-xs text-gray-400">
-                  ({taqreebTerms.length.toLocaleString('ar-EG')} لفظ)
-                </span>
-              </div>
-
-              {taqreebTerms.length === 0 ? (
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-6 text-center text-amber-600 text-sm">
-                  لا توجد ألفاظ تعديل مسجّلة
+        {/* Left column: Scholar sayings */}
+        <section className="lg:col-span-8 space-y-4">
+          {activeScholar ? (
+            <>
+              <div className="ui-card p-4 bg-amber-50/40 border-amber-200 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h2 className="text-lg font-bold text-green-900">{activeScholar.scholar_name}</h2>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {activeScholar.say_count.toLocaleString('ar-EG')} قولاً في {activeScholar.term_count.toLocaleString('ar-EG')} مصطلحاً
+                  </p>
                 </div>
-              ) : (
-                <div className="space-y-1.5 max-h-96 overflow-y-auto pl-1">
-                  {taqreebTerms.map((term, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-lg px-4 py-2.5 hover:border-amber-300 hover:bg-amber-100 transition-all group"
-                    >
-                      {term.sort_order !== null && (
-                        <span className="text-xs text-amber-400 tabular-nums shrink-0 w-6 text-left">
-                          {String(term.sort_order)}
+                <Link
+                  href={`/narrator/${activeScholar.scientist_id}`}
+                  className="text-xs text-green-800 font-semibold hover:underline"
+                >
+                  ترجمة العالم ←
+                </Link>
+              </div>
+
+              <div className="space-y-3">
+                {sayings.map(s => (
+                  <div key={s.link_id} className="ui-card p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      {s.tree_id ? (
+                        <Link
+                          href={`/hadith-terms/${s.tree_id}`}
+                          className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-900 border border-green-200 hover:bg-green-100"
+                        >
+                          {s.term_text || `مصطلح ${s.node_id}`}
+                        </Link>
+                      ) : (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-900 border border-green-200">
+                          {s.term_text || `مصطلح ${s.node_id}`}
                         </span>
                       )}
-                      <span className="text-sm font-medium text-amber-900 flex-1 leading-relaxed">
-                        {term.term_text}
-                      </span>
-                      <span className="text-xs text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        تعديل
-                      </span>
+
+                      {s.book_name && s.service_main_id ? (
+                        <Link
+                          href={`/service-content/${s.service_main_id}`}
+                          className="text-xs text-blue-700 hover:underline"
+                        >
+                          {s.book_name}
+                          {s.part_num || s.page_num
+                            ? ` (${s.part_num ? `ج${s.part_num}` : ''}${s.part_num && s.page_num ? ' ' : ''}${s.page_num ? `ص${s.page_num}` : ''})`
+                            : ''}
+                        </Link>
+                      ) : s.book_name ? (
+                        <span className="text-xs text-gray-400">{s.book_name}</span>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* جرح terms */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-bold text-rose-800 bg-rose-100 border border-rose-200 px-3 py-1 rounded-full">
-                  ألفاظ الجرح
-                </span>
-                <span className="text-xs text-gray-400">
-                  ({jarhTerms.length.toLocaleString('ar-EG')} لفظ)
-                </span>
-              </div>
-
-              {jarhTerms.length === 0 ? (
-                <div className="bg-rose-50 border border-rose-100 rounded-xl p-6 text-center text-rose-600 text-sm">
-                  لا توجد ألفاظ جرح مسجّلة
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-96 overflow-y-auto pl-1">
-                  {jarhTerms.map((term, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 bg-rose-50 border border-rose-100 rounded-lg px-4 py-2.5 hover:border-rose-300 hover:bg-rose-100 transition-all group"
-                    >
-                      {term.sort_order !== null && (
-                        <span className="text-xs text-rose-300 tabular-nums shrink-0 w-6 text-left">
-                          {String(term.sort_order)}
-                        </span>
-                      )}
-                      <span className="text-sm font-medium text-rose-900 flex-1 leading-relaxed">
-                        {term.term_text}
-                      </span>
-                      <span className="text-xs text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        جرح
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Methodology note */}
-          <div className="mt-5 bg-green-50 border border-green-100 rounded-xl p-4 text-xs text-green-800">
-            <p className="font-semibold mb-1">ملاحظة منهجية</p>
-            <p className="leading-relaxed">
-              اختلف العلماء في تحديد عدد مراتب الجرح والتعديل؛ فجعلها بعضهم أربعاً، وبعضهم ستاً أو أكثر.
-              وقد أبدع ابن أبي حاتم في ضبطها واستقرأها من كلام الأئمة المتقدمين. وتختلف دلالة اللفظ أحياناً
-              بحسب قائله؛ فـ"لا بأس به" عند ابن معين توثيق، وعند غيره تليين.
-            </p>
-          </div>
-        </section>
-
-        {/* Section 2 — Top Scholars by evaluation count */}
-        <section>
-          <h2 className="text-lg font-bold text-green-900 mb-1 flex items-center gap-2">
-            <span className="w-1 h-6 bg-indigo-500 rounded-full inline-block" />
-            العلماء الناقدون
-          </h2>
-          <p className="text-sm text-gray-500 mb-5 leading-relaxed">
-            أكثر علماء الجرح والتعديل تقييماً للرواة في قاعدة البيانات — مرتبون بعدد تقييماتهم المسجّلة.
-            كلما ازداد عدد التقييمات دلّ ذلك على سعة اطّلاع العالم وكثرة تصانيفه الرجالية.
-          </p>
-
-          {scholars.length === 0 ? (
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-8 text-center text-gray-500">
-              لا توجد بيانات للعلماء
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {scholars.map((scholar, idx) => {
-                const barPct = Math.round((scholar.eval_count / maxEvalCount) * 100)
-                const rank = idx + 1
-                let rankBadge = ''
-                let rankColor = 'text-gray-400'
-                if (rank === 1) { rankBadge = 'المركز الأول'; rankColor = 'text-amber-700' }
-                else if (rank === 2) { rankBadge = 'المركز الثاني'; rankColor = 'text-gray-500' }
-                else if (rank === 3) { rankBadge = 'المركز الثالث'; rankColor = 'text-amber-700' }
-
-                return (
-                  <div
-                    key={scholar.scientist_name}
-                    className="bg-white rounded-xl border border-gray-100 px-5 py-3.5 hover:border-green-200 hover:shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`text-sm tabular-nums font-bold shrink-0 w-7 ${rankColor}`}>
-                        {rankBadge || rank.toLocaleString('ar-EG')}
-                      </span>
-                      <span className="flex-1 font-bold text-green-900 text-sm">
-                        {scholar.scientist_name}
-                      </span>
-                      <span className="shrink-0 text-sm font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-0.5 rounded-full">
-                        {scholar.eval_count.toLocaleString('ar-EG')} تقييم
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-indigo-400 h-1.5 rounded-full transition-all"
-                          style={{ width: `${barPct}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-400 shrink-0 w-10 text-left tabular-nums">
-                        {barPct}%
-                      </span>
-                    </div>
+                    <p className="text-sm text-gray-800 leading-8">{s.say}</p>
                   </div>
-                )
-              })}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="ui-card p-8 text-center text-sm text-gray-400">
+              اختر عالماً لعرض أقواله في علوم الحديث
             </div>
           )}
         </section>
-
-        {/* Reference: Classic texts on hadith sciences */}
-        <section>
-          <h2 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-gray-400 rounded-full inline-block" />
-            أمهات كتب علوم الحديث في الجرح والتعديل
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {[
-              {
-                title: 'الجرح والتعديل',
-                author: 'ابن أبي حاتم الرازي',
-                death: '327 هـ',
-                note: 'أشمل كتب الجرح والتعديل المسندة — تسعة مجلدات',
-                color: 'bg-green-50 border-green-200',
-                titleColor: 'text-green-900',
-              },
-              {
-                title: 'الضعفاء الكبير',
-                author: 'العقيلي',
-                death: '322 هـ',
-                note: 'يجمع أقوال النقاد في الرواة المتكلَّم فيهم',
-                color: 'bg-amber-50 border-amber-200',
-                titleColor: 'text-amber-900',
-              },
-              {
-                title: 'تهذيب الكمال',
-                author: 'المزي',
-                death: '742 هـ',
-                note: 'موسوعة رجالية جامعة للتوثيق والتجريح',
-                color: 'bg-blue-50 border-blue-200',
-                titleColor: 'text-blue-900',
-              },
-              {
-                title: 'تقريب التهذيب',
-                author: 'ابن حجر العسقلاني',
-                death: '852 هـ',
-                note: 'مختصر محرر يضبط درجة كل راوٍ في جملة وجيزة',
-                color: 'bg-purple-50 border-purple-200',
-                titleColor: 'text-purple-900',
-              },
-              {
-                title: 'الكاشف',
-                author: 'الذهبي',
-                death: '748 هـ',
-                note: 'تهذيب وانتقاء بأسلوب الذهبي النقدي الرفيع',
-                color: 'bg-rose-50 border-rose-200',
-                titleColor: 'text-rose-900',
-              },
-              {
-                title: 'معرفة الرجال',
-                author: 'ابن معين',
-                death: '233 هـ',
-                note: 'أقوال ابن معين المروية عنه في نقد الرواة',
-                color: 'bg-teal-50 border-teal-200',
-                titleColor: 'text-teal-900',
-              },
-            ].map((book, i) => (
-              <div key={i} className={`rounded-xl border p-4 ${book.color}`}>
-                <div className={`font-bold text-sm mb-1 ${book.titleColor}`}>{book.title}</div>
-                <div className="text-xs text-gray-600 font-medium">{book.author}</div>
-                <div className="text-xs text-gray-400 mb-2">ت {book.death}</div>
-                <div className="text-xs text-gray-600 leading-relaxed">{book.note}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Bottom navigation */}
-        <nav className="flex items-center gap-4 text-sm flex-wrap pt-2 border-t border-gray-100">
-          <Link href="/scholars" className="text-green-700 hover:underline">← أحكام المحدثين على الأحاديث</Link>
-          <Link href="/scholars/activity" className="text-green-700 hover:underline">← نشاط علماء الجرح والتعديل</Link>
-          <Link href="/narrators/jarh-terms" className="text-green-700 hover:underline">← مصطلحات درجات الرواة</Link>
-          <Link href="/narrators" className="text-green-700 hover:underline">← تصفح الرواة</Link>
-        </nav>
-
-      </main>
+      </div>
     </div>
   )
 }

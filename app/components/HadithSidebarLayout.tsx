@@ -6,7 +6,7 @@ import Link from '@/app/components/Link'
 import ReportPrintButton from './ReportPrintButton'
 import SaveHadith from './SaveHadith'
 import HadithExport from './HadithExport'
-import ChainTimeline from './ChainTimeline'
+// DEFERRED (web-only enhancement — not in legacy Windows app): import ChainTimeline from './ChainTimeline'
 import HadithNote from './HadithNote'
 import TrackHadithView from './TrackHadithView'
 import IsnadTree, { type IsnadRelationAlert, type NarratorPairRelation } from './IsnadTree'
@@ -227,7 +227,7 @@ export default function HadithSidebarLayout({
     ...serviceSections.filter(s => s.kind === 'witnesses').map(s => ({ id: s.id, label: s.label })),
     ...(judgments.length > 0 ? [{ id: 'aqwal', label: 'أقوال العلماء' }] : []),
     ...serviceSections.filter(s => s.kind !== 'witnesses').map(s => ({ id: s.id, label: s.label })),
-    { id: 'adawat',  label: 'أدوات البحث' },
+    // DEFERRED (web-only enhancement — not in legacy Windows app): { id: 'adawat', label: 'أدوات البحث' },
   ]
 
   function applyTashkeel(text: string): string {
@@ -283,9 +283,10 @@ export default function HadithSidebarLayout({
             <p className="text-[10px] font-bold text-gray-400 mb-1.5 uppercase tracking-wider">روابط سريعة</p>
             {[
               { href: `/hadith/${hadithId}/witnesses`,       label: 'الشواهد والمتابعات' },
-              { href: `/hadith/${hadithId}/pivot`,           label: 'مدار الحديث' },
-              { href: `/hadith/${hadithId}/isnad-ranking`,   label: 'ترتيب الأسانيد' },
-              { href: `/hadith/${hadithId}/across-books`,    label: 'الحديث في المصادر' },
+              // DEFERRED (web-only enhancement — not in legacy Windows app):
+              // { href: `/hadith/${hadithId}/pivot`,           label: 'مدار الحديث' },
+              // { href: `/hadith/${hadithId}/isnad-ranking`,   label: 'ترتيب الأسانيد' },
+              // { href: `/hadith/${hadithId}/across-books`,    label: 'الحديث في المصادر' },
             ].map(lnk => (
               <a key={lnk.href} href={lnk.href}
                 className="block text-xs text-green-700 hover:text-green-900 hover:underline py-0.5">
@@ -592,7 +593,7 @@ export default function HadithSidebarLayout({
                 narratorRelations={narratorRelations}
               />
 
-              {/* Secondary: chronological (death-year) view of the primary chain */}
+              {/* DEFERRED (web-only enhancement — not in legacy Windows app): chronological gap timeline
               <details className="rounded-xl border border-border bg-surface overflow-hidden group">
                 <summary className="cursor-pointer list-none select-none px-4 py-3 flex items-center justify-between gap-2 text-sm font-medium text-gray-600 hover:text-green-800 transition-colors">
                   <span>الجدول الزمني للسند — الفجوات بين الرواة</span>
@@ -602,6 +603,7 @@ export default function HadithSidebarLayout({
                   <ChainTimeline narrators={chains[0].narrators} />
                 </div>
               </details>
+              */}
 
               {commonNarrators.length > 0 && (
                 <div className="bg-green-50 border border-green-200 rounded-xl p-4">
@@ -750,9 +752,9 @@ export default function HadithSidebarLayout({
         )}
 
         </section>}
+        {/* DEFERRED (web-only enhancement — not in legacy Windows app): أدوات الباحث
         <div className="research-group research-group-tools">
         <h2 className="research-group-title">أدوات الباحث</h2>
-        {/* ── أدوات البحث ── */}
         <CollapsibleSection id="adawat" label="أدوات البحث">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -775,6 +777,7 @@ export default function HadithSidebarLayout({
           </div>
         </CollapsibleSection>
         </div>
+        */}
 
         <PrevNextNav
           prevId={prevId}

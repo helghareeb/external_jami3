@@ -33,12 +33,13 @@ export default async function ScholarHadithGradesPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    scholar_id?: string; grade?: string; page?: string; book?: string
+    scholar_id?: string; grade?: string; page?: string; book?: string; q?: string
   }>
 }) {
   const sp = await searchParams
   const scholarId = parseInt(sp.scholar_id || '0') || null
   const gradeFilter = sp.grade?.trim() || ''
+  const qFilter = sp.q?.trim() || ''
   const pageNum = Math.max(1, parseInt(sp.page || '1'))
   const bookFilter = parseInt(sp.book || '0') || null
   const pageSize = 25
@@ -56,12 +57,13 @@ export default async function ScholarHadithGradesPage({
 
   const [scholarsRes, gradeStatsRes, haditSRes, booksRes] = await Promise.all([
     pool.query<ScholarOption>(
-      `SELECT n.id AS scholar_id, n.name AS scholar_name, COUNT(*)::int AS judgment_count
-       FROM hadith_judgments hj
-       JOIN narrators n ON n.id = hj.scientist_id
-       GROUP BY n.id, n.name
-       ORDER BY judgment_count DESC
-       LIMIT 40`
+      `SELECT hjs.id AS scholar_id, hjs.name AS scholar_name, COUNT(hj.id)::int AS judgment_count
+       FROM hadith_judgment_scientists hjs
+       JOIN hadith_judgments hj ON hj.scientist_id = hjs.id
+       ${qFilter ? 'WHERE hjs.name ILIKE $1' : ''}
+       GROUP BY hjs.id, hjs.name
+       ORDER BY judgment_count DESC`,
+      qFilter ? [`%${qFilter}%`] : []
     ).catch(() => ({ rows: [] as ScholarOption[] })),
 
     scholarId ? pool.query<GradeStat>(
@@ -140,12 +142,29 @@ export default async function ScholarHadithGradesPage({
       </div>
 
       {/* Scholar selection */}
-      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
-        <div className="text-xs text-gray-500 mb-2 font-medium">اختر العالم</div>
-        <div className="flex flex-wrap gap-2">
+      <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="text-xs text-gray-500 font-medium">
+            اختر العالم ({scholars.length.toLocaleString('ar-EG')} عالماً)
+          </div>
+          <form action="/scholars/hadith-grades" method="get" className="flex items-center gap-1.5">
+            {scholarId && <input type="hidden" name="scholar_id" value={String(scholarId)} />}
+            <input
+              type="search"
+              name="q"
+              defaultValue={qFilter}
+              placeholder="بحث في أسماء العلماء..."
+              className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs focus:outline-none focus:border-green-500"
+            />
+            <button type="submit" className="text-xs px-2.5 py-1 rounded-lg bg-green-800 text-white hover:bg-green-700">
+              بحث
+            </button>
+          </form>
+        </div>
+        <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
           {scholars.map(s => (
             <Link key={s.scholar_id}
-              href={`/scholars/hadith-grades?scholar_id=${s.scholar_id}`}
+              href={`/scholars/hadith-grades?scholar_id=${s.scholar_id}${qFilter ? `&q=${encodeURIComponent(qFilter)}` : ''}`}
               className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                 s.scholar_id === scholarId
                   ? 'bg-green-800 text-white border-green-800'

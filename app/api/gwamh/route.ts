@@ -18,6 +18,7 @@ interface GwamhItemRow {
   death_year_num: number | null
   is_companion: boolean
   hadiths_count: number
+  athar_count: number
 }
 
 interface GwamhHadithRow {
@@ -42,17 +43,25 @@ export async function GET(req: Request) {
   const offset = (page - 1) * limit
 
   try {
+    // Legacy GwamhItems mixes some non-companions into gamh_id=1 and companions into gamh_id=2.
+    // Enforce true classification from narrators.is_companion so آثار الصحابة strictly lists companions
+    // and آثار التابعين strictly lists non-companions.
     const categoriesRes = await pool.query<CategoryRow>(
       `SELECT g.id, g.name,
-              (SELECT COUNT(*)::int FROM gwamh_items gi WHERE gi.gamh_id = g.id) AS count
+              (SELECT COUNT(*)::int
+               FROM gwamh_items gi
+               JOIN narrators n ON n.id = gi.id
+               WHERE gi.gamh_id = g.id
+                 AND ((g.id = 1 AND n.is_companion = true)
+                      OR (g.id = 2 AND COALESCE(n.is_companion, false) = false))) AS count
        FROM gwamh g
        ORDER BY g.id`
     )
     const categories = categoriesRes.rows
+    const targetIsnadType = gamhId === 1 ? 2 : 3
 
-    // When a narrator is selected, load their موقوف (isnad_type=2) or مقطوع (isnad_type=3) narrations
+    // When a narrator is selected, load their direct موقوف (isnad_type=2) or مقطوع (isnad_type=3) narrations
     if (Number.isSafeInteger(rawNarrator) && rawNarrator > 0) {
-      const targetIsnadType = gamhId === 1 ? 2 : 3
       const narInfoRes = await pool.query<{
         id: number
         text: string
@@ -71,39 +80,26 @@ export async function GET(req: Request) {
         [rawNarrator, gamhId]
       )
       const narrator = narInfoRes.rows[0] ?? null
+      const eligible =
+        narrator != null &&
+        (gamhId === 1 ? Boolean(narrator.is_companion) : !Boolean(narrator.is_companion))
 
-      // Primary match: narrator at the root of the chain (narrator_id_array[1]) for this athar type
-      let matchScope: 'root' | 'chain' = 'root'
-      const rootCountRes = await pool.query<{ total: number }>(
-        `SELECT COUNT(DISTINCT ih.hadith_id)::int AS total
-         FROM isnad_chains ic
-         JOIN isnad_hadiths ih ON ih.isnad_id = ic.id
-         WHERE ic.narrator_id_array @> ARRAY[$1]::int[]
-           AND ic.narrator_id_array[1] = $1
-           AND ih.isnad_type = $2`,
-        [rawNarrator, targetIsnadType]
-      )
-      let total = rootCountRes.rows[0]?.total ?? 0
-      if (total === 0) {
-        matchScope = 'chain'
-        const chainCountRes = await pool.query<{ total: number }>(
-          `SELECT COUNT(DISTINCT ih.hadith_id)::int AS total
-           FROM isnad_chains ic
-           JOIN isnad_hadiths ih ON ih.isnad_id = ic.id
-           WHERE ic.narrator_id_array @> ARRAY[$1]::int[]
-             AND ih.isnad_type = $2`,
-          [rawNarrator, targetIsnadType]
-        )
-        total = chainCountRes.rows[0]?.total ?? 0
-      }
+      const matchScope = 'root' as const
+      let total = 0
+      let hadiths: GwamhHadithRow[] = []
 
-      const scopeClause =
-        matchScope === 'root'
-          ? `ic.narrator_id_array @> ARRAY[$1]::int[] AND ic.narrator_id_array[1] = $1 AND ih.isnad_type = $2`
-          : `ic.narrator_id_array @> ARRAY[$1]::int[] AND ih.isnad_type = $2`
-
-      const hadithsRes = total > 0
-        ? await pool.query<GwamhHadithRow>(
+      if (eligible) {
+        const [cntRes, hRes] = await Promise.all([
+          pool.query<{ total: number }>(
+            `SELECT COUNT(DISTINCT ih.hadith_id)::int AS total
+             FROM isnad_chains ic
+             JOIN isnad_hadiths ih ON ih.isnad_id = ic.id
+             WHERE ic.narrator_id_array @> ARRAY[$1]::int[]
+               AND ic.narrator_id_array[1] = $1
+               AND ih.isnad_type = $2`,
+            [rawNarrator, targetIsnadType]
+          ),
+          pool.query<GwamhHadithRow>(
             `SELECT DISTINCT ON (ht.main_id)
                     ht.main_id, ht.book_id, b.title AS book_title,
                     regexp_replace(coalesce(ht.tarf, ''), '<[^>]+>', ' ', 'g') AS tarf,
@@ -113,12 +109,17 @@ export async function GET(req: Request) {
              JOIN isnad_hadiths ih ON ih.isnad_id = ic.id
              JOIN hadith_toc ht ON ht.main_id = ih.hadith_id
              JOIN books b ON b.id = ht.book_id
-             WHERE ${scopeClause}
+             WHERE ic.narrator_id_array @> ARRAY[$1]::int[]
+               AND ic.narrator_id_array[1] = $1
+               AND ih.isnad_type = $2
              ORDER BY ht.main_id ASC
              LIMIT $3 OFFSET $4`,
             [rawNarrator, targetIsnadType, limit, offset]
-          )
-        : { rows: [] as GwamhHadithRow[] }
+          ),
+        ])
+        total = cntRes.rows[0]?.total ?? 0
+        hadiths = hRes.rows
+      }
 
       return NextResponse.json({
         categories,
@@ -126,40 +127,56 @@ export async function GET(req: Request) {
         narrator,
         isnadType: targetIsnadType,
         matchScope,
-        hadiths: hadithsRes.rows,
+        hadiths,
         total,
         page,
         limit,
       })
     }
 
-    // Directory listing of narrators in this جامع
-    const params: unknown[] = [gamhId]
+    // Directory listing of narrators in this جامع — strictly separated by الصحابة / التابعين, alphabetically sorted
+    const roleCond =
+      gamhId === 1
+        ? 'AND n.is_companion = true'
+        : 'AND COALESCE(n.is_companion, false) = false'
+
+    const baseParams: unknown[] = [gamhId]
     let searchCond = ''
     if (q) {
-      params.push(`%${q}%`)
-      searchCond = `AND (gi.text ILIKE $${params.length} OR n.name ILIKE $${params.length} OR n.abb_name ILIKE $${params.length})`
+      baseParams.push(`%${q}%`)
+      searchCond = `AND (gi.text ILIKE $${baseParams.length} OR n.name ILIKE $${baseParams.length} OR n.abb_name ILIKE $${baseParams.length})`
     }
+
+    const itemsParams: unknown[] = [...baseParams, targetIsnadType, limit, offset]
+    const typeIdx = baseParams.length + 1
+    const limIdx = baseParams.length + 2
+    const offIdx = baseParams.length + 3
 
     const [cntRes, itemsRes] = await Promise.all([
       pool.query<{ total: number }>(
         `SELECT COUNT(*)::int AS total
          FROM gwamh_items gi
-         LEFT JOIN narrators n ON n.id = gi.id
-         WHERE gi.gamh_id = $1 ${searchCond}`,
-        params
+         JOIN narrators n ON n.id = gi.id
+         WHERE gi.gamh_id = $1 ${roleCond} ${searchCond}`,
+        baseParams
       ),
       pool.query<GwamhItemRow>(
         `SELECT gi.gamh_id, gi.id, gi.text,
                 n.abb_name, n.tabaqa, n.death_year_num,
                 COALESCE(n.is_companion, false) AS is_companion,
-                COALESCE(n.hadiths_count, 0)::int AS hadiths_count
+                COALESCE(n.hadiths_count, 0)::int AS hadiths_count,
+                (SELECT COUNT(DISTINCT ih.hadith_id)::int
+                 FROM isnad_chains ic
+                 JOIN isnad_hadiths ih ON ih.isnad_id = ic.id
+                 WHERE ic.narrator_id_array @> ARRAY[gi.id]::int[]
+                   AND ic.narrator_id_array[1] = gi.id
+                   AND ih.isnad_type = $${typeIdx}) AS athar_count
          FROM gwamh_items gi
-         LEFT JOIN narrators n ON n.id = gi.id
-         WHERE gi.gamh_id = $1 ${searchCond}
-         ORDER BY COALESCE(n.hadiths_count, 0) DESC, gi.text ASC
-         LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-        [...params, limit, offset]
+         JOIN narrators n ON n.id = gi.id
+         WHERE gi.gamh_id = $1 ${roleCond} ${searchCond}
+         ORDER BY COALESCE(NULLIF(n.abb_name, ''), gi.text) ASC, gi.id ASC
+         LIMIT $${limIdx} OFFSET $${offIdx}`,
+        itemsParams
       ),
     ])
 

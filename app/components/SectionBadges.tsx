@@ -43,18 +43,23 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
          AND t.hadith_id <> $1`,
       [hadithId]
     ).catch(() => empty),
-    // /api/hadith/[id]/witnesses-inline — across ALL groups
+    // /api/hadith/[id]/witnesses-inline — HGamhAlMatn \ HTakhreeg (matches Windows Shwahed)
     pool.query<{ paths: number; companions: number; unknown: boolean }>(
-      `SELECT COUNT(DISTINCT COALESCE(comp.id::text, t2.hadith_id::text))::int AS paths,
+      `SELECT COUNT(DISTINCT COALESCE(comp.id::text, g2.hadith_main_id::text))::int AS paths,
               COUNT(DISTINCT comp.id)::int AS companions,
               COALESCE(bool_or(comp.id IS NULL), false) AS unknown
-       FROM takhrij t2
-       JOIN hadith_toc ht ON ht.main_id = t2.hadith_id AND ht.is_leaf = true AND ht.is_paragraph = true
-       LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = t2.hadith_id
+       FROM hadith_group_matn g2
+       JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
+       LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
        LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
        LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
-       WHERE t2.group_id IN (SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL)
-         AND t2.hadith_id != $1`,
+       WHERE g2.group_id IN (SELECT DISTINCT group_id FROM hadith_group_matn WHERE hadith_main_id = $1 AND group_id IS NOT NULL)
+         AND g2.hadith_main_id != $1
+         AND NOT (g2.hadith_main_id IN (
+           SELECT t2.hadith_id
+           FROM takhrij t2
+           WHERE t2.group_id IN (SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL)
+         ))`,
       [hadithId]
     ).catch(() => empty),
     // /api/hadith/[id]/narrators-by-region

@@ -266,7 +266,7 @@ export default async function BookPage({
   }
 
   // ── Book overview: show top-level chapters ──
-  const [topChapRes, sampleRes, statsRes, companionsRes] = await Promise.all([
+  const [topChapRes, sampleRes, statsRes] = await Promise.all([
     // Top-level chapters (direct children of root)
     rootId ? pool.query(
       `SELECT main_id, content, chapter_text, section_text, left_value, right_value,
@@ -294,7 +294,7 @@ export default async function BookPage({
       `SELECT COUNT(*) as total_hadiths FROM hadith_toc WHERE book_id = $1 AND is_leaf = true AND is_paragraph = true`,
       [bookId]
     ),
-    // Top companions in this book (from chain position 1)
+    /* DEFERRED (web-only enhancement — not in legacy Windows app): synthetic top companions in book
     pool.query(
       `SELECT n.id, n.name, n.abb_name, COUNT(DISTINCT ht.main_id)::int AS cnt
        FROM hadith_toc ht
@@ -305,13 +305,12 @@ export default async function BookPage({
        LIMIT 12`,
       [bookId]
     ).catch(() => ({ rows: [] })),
+    */
   ])
 
   const topChapters = topChapRes.rows
   const sampleHadiths = sampleRes.rows
   const totalHadiths = parseInt(statsRes.rows[0]?.total_hadiths || '0')
-  const topCompanions = (companionsRes as { rows: Array<{ id: number; name: string; abb_name: string | null; cnt: number }> }).rows
-  const maxCompanionCnt = topCompanions[0]?.cnt || 1
 
   // Detect service books: no hadith_toc entries but has hadith_service_content
   type ServiceTypeRow = { type_id: number | null; cnt: number }
@@ -415,6 +414,7 @@ export default async function BookPage({
           >
             رجال الكتاب
           </Link>
+          {/* DEFERRED (web-only enhancement — not in legacy Windows app):
           <Link
             href={`/chains?book=${bookId}`}
             className="text-sm bg-blue-50 text-blue-800 border border-blue-200 rounded-xl px-4 py-2 hover:bg-blue-100 transition-colors"
@@ -439,9 +439,10 @@ export default async function BookPage({
           >
             ملف الإسناد
           </Link>
+          */}
         </div>
 
-        {/* Top companions in this book */}
+        {/* DEFERRED (web-only enhancement — not in legacy Windows app): أبرز الصحابة في أسانيد هذا الكتاب
         {topCompanions.length > 0 && (
           <div className="mb-6 bg-white rounded-2xl border border-amber-100 p-5">
             <h2 className="text-sm font-bold text-amber-900 mb-3 flex items-center gap-2">
@@ -475,6 +476,7 @@ export default async function BookPage({
             </div>
           </div>
         )}
+        */}
 
         {/* Book summary */}
         {book.summary?.trim() && (
