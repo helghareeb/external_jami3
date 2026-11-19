@@ -14,7 +14,8 @@
     "pack": "electron-builder --dir",
     "build:win": "electron-builder --win --publish never",
     "build:mac": "electron-builder --mac --publish never",
-    "build:linux": "electron-builder --linux --publish never"
+    "build:linux": "electron-builder --linux --publish never",
+    "build:store": "electron-builder --win appx --x64 --publish never"
   },
   "dependencies": {
     "electron-updater": "6.8.11"
