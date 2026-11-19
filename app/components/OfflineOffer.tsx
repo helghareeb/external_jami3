@@ -15,6 +15,7 @@ import {
 } from '@/lib/offline/client'
 import { desktopAppReplacesPwa, inDesktopApp } from '@/lib/desktopApps'
 import { inAndroidApp } from '@/lib/androidApp'
+import { isIosDevice, whereAmI } from '@/lib/appContext'
 
 const DISMISS_KEY = 'offline-offer-dismissed'
 const DISMISS_DAYS = 14
@@ -36,6 +37,11 @@ export default function OfflineOffer() {
 
   useEffect(() => {
     if (!offlineSupported()) return
+    // Only inside our apps (desktop, Android) and the iPhone/iPad home-screen copies, which have no app to move to.
+    // A browser, or an old browser app on a computer or Android phone, is pointed to the apps instead
+    // (DesktopUpgrade, the install bar) and is no longer asked to download or update the encyclopedia.
+    const where = whereAmI()
+    if (!(where === 'desktop-app' || where === 'android-app' || (where === 'pwa' && isIosDevice()))) return
     let started = false
     try { started = !!localStorage.getItem('offline-ready') || !!localStorage.getItem('offline-started') } catch {}
     if (!standalone() && !started) return
