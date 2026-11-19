@@ -52,7 +52,8 @@ $d = Get-Date -Format yyyy-MM-dd
 & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" --dbname=$env:PGURL -Fc --no-owner --no-privileges `
   --exclude-table-data='users' --exclude-table-data='sessions' --exclude-table-data='login_links' `
   --exclude-table-data='login_codes' --exclude-table-data='api_tokens' --exclude-table-data='oauth_*' `
-  --exclude-table-data='page_views' --exclude-table-data='mcp_events' --exclude-table-data='collections' `
+  --exclude-table-data='page_views' --exclude-table-data='mcp_events' --exclude-table-data='mcp_usage' `
+  --exclude-table-data='collections' --exclude-table-data='collection_items' `
   --exclude-table-data='highlights' --exclude-table-data='library_*' --exclude-table-data='user_*' `
   --exclude-table-data='admin_*' `
   -f "db-backup\hadith-public-$d.dump"
@@ -68,7 +69,7 @@ Neither command should print anything except the counts on the last line:
 
 ```bash
 f=db-backup/hadith-public-YYYY-MM-DD.dump
-pg_restore --list "$f" | grep "TABLE DATA" | grep -E " public (users|sessions|login_links|login_codes|api_tokens|oauth_[a-z_]*|page_views|mcp_events|collections|highlights|library_[a-z_]*|user_[a-z_]*|admin_[a-z_]*) "
+pg_restore --list "$f" | grep "TABLE DATA" | grep -E " public (users|sessions|login_links|login_codes|api_tokens|oauth_[a-z_]*|page_views|mcp_events|mcp_usage|collections|collection_items|highlights|library_[a-z_]*|user_[a-z_]*|admin_[a-z_]*) "
 echo "tables: $(pg_restore --list "$f" | grep -c ' TABLE public ')  with data: $(pg_restore --list "$f" | grep -c 'TABLE DATA')"
 sha256sum "$f"
 ```

@@ -96,7 +96,7 @@ npm run dev            # http://localhost:3000
 
 ```bash
 curl -L -o db-backup/hadith-public-2026-11-19.dump https://files.hadith.dev/db/hadith-public-2026-11-19.dump
-sha256sum db-backup/hadith-public-2026-11-19.dump   # 722945af88127487d37278754bb7db95a06de6adc6c1160b71e863c24accc6b6
+sha256sum db-backup/hadith-public-2026-11-19.dump   # d414c93370763132cfe77f94235437c01259e6e4774dc573dde60ce4a9c15b42
 docker compose up -d
 docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
@@ -188,7 +188,7 @@ A full public copy of the database is available for direct download:
 
 ```bash
 curl -L -o db-backup/hadith-public-2026-11-19.dump https://files.hadith.dev/db/hadith-public-2026-11-19.dump
-sha256sum db-backup/hadith-public-2026-11-19.dump   # 722945af88127487d37278754bb7db95a06de6adc6c1160b71e863c24accc6b6
+sha256sum db-backup/hadith-public-2026-11-19.dump   # d414c93370763132cfe77f94235437c01259e6e4774dc573dde60ce4a9c15b42
 docker compose up -d
 docker exec hadith-postgres pg_restore -U postgres -d railway --no-owner --no-privileges /backup/hadith-public-2026-11-19.dump
 ```
