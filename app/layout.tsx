@@ -82,7 +82,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   +61 426 047 327
                 </a>
               </p>
-              <a href="/offline" className="font-sans text-xs mt-2 inline-flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80">ثبّت الجامع على جهازك (يعمل دون إنترنت)</a>
+              <div className="font-sans text-xs mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <a href="/offline" className="inline-flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80">ثبّت الجامع على جهازك (يعمل دون إنترنت)</a>
+                <a href="/privacy" className="inline-flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80">سياسة الخصوصية وحذف الحساب</a>
+              </div>
             </div>
             <img src="/assets/theme-ornament.svg" alt="" width="240" height="24" className="site-footer-ornament" />
           </div>

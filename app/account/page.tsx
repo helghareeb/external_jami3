@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/auth'
 import { isAdmin } from '@/lib/adminGate'
 import { MCP_LIMITS } from '@/lib/mcp/limits'
 import TokenManager from './TokenManager'
+import DeleteAccountButton from './DeleteAccountButton'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'حسابي — الجامع', robots: { index: false } }
@@ -54,6 +55,19 @@ export default async function AccountPage() {
       <section className="ui-card rounded-2xl p-5">
         <h2 className="text-base font-bold text-green-900 mb-3">الرموز الشخصية</h2>
         <TokenManager tokens={tokens.rows} />
+      </section>
+
+      <section className="ui-card rounded-2xl p-5 space-y-3 border-red-200/80">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="text-base font-bold text-red-800">حذف الحساب نهائيًا</h2>
+          <a href="/privacy#delete-account" className="text-xs text-muted underline underline-offset-2 hover:text-green-800">
+            سياسة الخصوصية وحذف الحساب
+          </a>
+        </div>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          يزيل هذا الإجراء حسابك وجميع محفوظات «مكتبتي» وملاحظاتك وتظليلاتك ورموز MCP فورًا وبشكل دائم.
+        </p>
+        <DeleteAccountButton />
       </section>
     </div>
   )
