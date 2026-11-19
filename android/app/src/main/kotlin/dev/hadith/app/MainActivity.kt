@@ -161,6 +161,10 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        // Reopening the app from its icon (or recents) brings no link: stay on the page as it is.
+        // Loading the home page here ended whatever the page was doing, such as the offline
+        // database download, every time the user came back to the app.
+        if (intent.dataString.isNullOrBlank()) return
         val url = resolveStartUrl(intent)
         if (HadithUrls.isInternalSiteUrl(url)) {
             loadSiteUrl(url)

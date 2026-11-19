@@ -1,14 +1,14 @@
 'use client'
 
-// In the installed app: the offer to download the encyclopedia for use without internet, and while
-// it downloads, a small progress pill on every page (tapping it opens /offline with the details).
+// In the installed app: the offer to download the encyclopedia for use without internet — one button
+// that opens /offline, where the download runs with its progress bar in view — and while it
+// downloads, a small progress pill on every page (tapping it opens /offline with the details).
 // Once the data is on the device, it asks the service worker to refresh its copy of the offline
 // reader, so the reader matches the site after each release, and when a newer edition of the data
 // is published (a different manifest version or checksum) it asks the reader to update — on any
 // page, not only on /offline. «ليس الآن» asks again a day later, until the update is taken.
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
-import { canPrompt, installApp } from './InstallApp'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   fetchOfflineManifest, formatBytes, offlineSupported, refreshOfflineStatus, startOfflineDownload,
   useOfflineState, type OfflineManifest,
@@ -30,6 +30,7 @@ const standalone = () =>
 export default function OfflineOffer() {
   const s = useOfflineState()
   const pathname = usePathname()
+  const router = useRouter()
   const [eligible, setEligible] = useState(false)
   const [offer, setOffer] = useState(false)
   const [update, setUpdate] = useState(false)
@@ -91,7 +92,8 @@ export default function OfflineOffer() {
       setUpdate(false)
       try { localStorage.setItem(UPDATE_DISMISS_KEY, `${manifest.version}|${Date.now()}`) } catch {}
     }
-    const go = () => { setUpdate(false); startOfflineDownload() }
+    // Started here, followed on /offline (a client-side move, so the download carries on)
+    const go = () => { setUpdate(false); startOfflineDownload(); router.push('/offline') }
     return (
       <div role="dialog" aria-label="تحديث بيانات الجامع على جهازك"
         className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"
@@ -118,12 +120,6 @@ export default function OfflineOffer() {
     setOffer(false)
     try { localStorage.setItem(DISMISS_KEY, String(Date.now())) } catch {}
   }
-  const start = () => {
-    setOffer(false)
-    try { localStorage.setItem('offline-started', '1') } catch {}
-    if (canPrompt()) installApp()
-    startOfflineDownload()
-  }
 
   // In an installed native app (desktop or Android) «الجامع» is already installed: only download the encyclopedia
   const desk = inDesktopApp() || inAndroidApp()
@@ -141,10 +137,10 @@ export default function OfflineOffer() {
         {manifest && <> حجم التحميل {formatBytes(manifest.downloadSize)} (يُفضَّل عبر Wi-Fi).</>}
       </p>
       <div className="flex items-center gap-2 mt-3">
-        <button type="button" onClick={start} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
-          {resuming ? 'متابعة التحميل' : desk ? 'تحميل الموسوعة' : 'تثبيت الجامع'}
-        </button>
-        <a href="/offline" className="text-sm underline underline-offset-2 opacity-90">التفاصيل</a>
+        {/* One way in: the download itself starts on /offline, where its progress is shown in full */}
+        <a href="/offline" onClick={() => setOffer(false)} className="rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
+          {resuming ? 'متابعة تحميل قاعدة البيانات' : 'تحميل قاعدة البيانات'}
+        </a>
         <button type="button" onClick={dismiss} className="mr-auto text-sm opacity-70 hover:opacity-100">ليس الآن</button>
       </div>
     </div>

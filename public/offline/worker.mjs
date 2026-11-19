@@ -12,6 +12,9 @@ const STATE_FILE = 'offline-state.json'
 const STAGING = 'staging'
 const PARALLEL = 3
 const AHEAD = 6
+// A chunk whose connection sends nothing for this long is dropped and fetched again (a phone that
+// slept, changed networks or lost a connection without an error leaves a fetch hanging for ever)
+const IDLE_MS = 30_000
 
 let abort = null
 
@@ -31,9 +34,21 @@ async function readState() {
   }
 }
 
+// A worker the page has just replaced (its watchdog, or a reload) lets go of its files a moment after
+// it is stopped: wait for them rather than fail the download as «open in another window»
+async function openSync(fh) {
+  for (let attempt = 1; ; attempt++) {
+    try { return await fh.createSyncAccessHandle() }
+    catch (e) {
+      if (attempt >= 20 || !/NoModificationAllowed|InvalidState/.test(e?.name || '')) throw e
+      await new Promise(r => setTimeout(r, 500))
+    }
+  }
+}
+
 async function writeState(state) {
   const fh = await (await root()).getFileHandle(STATE_FILE, { create: true })
-  const h = await fh.createSyncAccessHandle()
+  const h = await openSync(fh)
   try {
     const bytes = new TextEncoder().encode(JSON.stringify(state))
     h.truncate(0)
@@ -71,31 +86,46 @@ async function status() {
 }
 
 async function saveChunk(dir, chunk, base, signal, onBytes) {
-  const res = await fetch(base + encodeURIComponent(chunk.name), { signal, cache: 'no-store' })
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} for ${chunk.name}`)
-  // Written under a temporary name and renamed when complete, so the importer never reads half a chunk
-  const fh = await dir.getFileHandle(chunk.name + '.part', { create: true })
-  const h = await fh.createSyncAccessHandle()
+  // Its own abort, for a connection gone quiet, besides the download's (pause)
+  const ctl = new AbortController()
+  const stop = () => ctl.abort()
+  signal.addEventListener('abort', stop)
+  let idle = setTimeout(stop, IDLE_MS)
+  const alive = () => { clearTimeout(idle); idle = setTimeout(stop, IDLE_MS) }
   let at = 0
   try {
-    h.truncate(0)
-    const reader = res.body.getReader()
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
-      h.write(value, { at })
-      at += value.byteLength
-      onBytes(value.byteLength)
+    const res = await fetch(base + encodeURIComponent(chunk.name), { signal: ctl.signal, cache: 'no-store' })
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} for ${chunk.name}`)
+    alive()
+    // Written under a temporary name and renamed when complete, so the importer never reads half a chunk
+    const fh = await dir.getFileHandle(chunk.name + '.part', { create: true })
+    const h = await openSync(fh)
+    try {
+      h.truncate(0)
+      const reader = res.body.getReader()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        alive()
+        h.write(value, { at })
+        at += value.byteLength
+        onBytes(value.byteLength)
+      }
+      h.flush()
+    } finally {
+      h.close()
     }
-    h.flush()
-  } finally {
-    h.close()
-  }
-  if (at !== chunk.gzSize) {
+    if (at !== chunk.gzSize) throw new Error(`${chunk.name}: got ${at} bytes, expected ${chunk.gzSize}`)
+    await fh.move(chunk.name)
+  } catch (e) {
+    // The bytes of a failed attempt come again with the next one: take them off the bar
     onBytes(-at)
-    throw new Error(`${chunk.name}: got ${at} bytes, expected ${chunk.gzSize}`)
+    if (ctl.signal.aborted && !signal.aborted) throw new Error(`${chunk.name}: connection stalled`)
+    throw e
+  } finally {
+    clearTimeout(idle)
+    signal.removeEventListener('abort', stop)
   }
-  await fh.move(chunk.name)
 }
 
 // Where chunk i starts: which file of the data directory, and how far into it
@@ -194,8 +224,9 @@ async function download({ base }) {
       for (let attempt = 1; ; attempt++) {
         try { await saveChunk(staging, c, base, signal, report); return }
         catch (e) {
-          if (signal.aborted || attempt >= 4) throw e
-          await new Promise(r => setTimeout(r, 2000 * attempt))
+          // Mobile connections drop and come back: keep trying for a few minutes before giving up
+          if (signal.aborted || attempt >= 8) throw e
+          await new Promise(r => setTimeout(r, Math.min(2000 * attempt, 15000)))
         }
       }
     }
@@ -217,7 +248,7 @@ async function download({ base }) {
     let h = null
     const openFile = async () => {
       const fh = await dataAh.getFileHandle(`f${f.toString(36)}`, { create: true })
-      h = await fh.createSyncAccessHandle()
+      h = await openSync(fh)
       if (at === 0) h.truncate(0)
     }
     const closeFile = () => { if (h) { h.flush(); h.close(); h = null } }
@@ -262,7 +293,7 @@ async function download({ base }) {
     // 3) Empty files, then the file tree: from here PGlite can open the directory
     for (const [k, e] of files.entries()) if (e.size === 0) await dataAh.getFileHandle(`f${k.toString(36)}`, { create: true })
     const sfh = await dbDir.getFileHandle('state.txt', { create: true })
-    const sh = await sfh.createSyncAccessHandle()
+    const sh = await openSync(sfh)
     try {
       sh.truncate(0)
       sh.write(new TextEncoder().encode(JSON.stringify(ahpState(manifest.entries))), { at: 0 })

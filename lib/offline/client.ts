@@ -41,8 +41,46 @@ let state: OfflineState = { phase: 'idle', status: null, done: 0, total: 0, spee
 const listeners = new Set<() => void>()
 const set = (patch: Partial<OfflineState>) => {
   state = { ...state, ...patch }
+  keepAwake(state.phase === 'download' || state.phase === 'import')
   listeners.forEach(l => l())
 }
+
+// A phone that turns its screen off (after 30 s on many) freezes the page and its worker, so the
+// download only moved while someone kept touching the screen: keep the screen on while it runs.
+// The Android app does it natively (window.hadithAndroid), browsers through the Wake Lock API.
+let awake = false
+let wakeLock: WakeLockSentinel | null = null
+function keepAwake(on: boolean) {
+  if (on === awake || typeof window === 'undefined') return
+  awake = on
+  try { window.hadithAndroid?.setKeepScreenOn?.(on) } catch {}
+  if (on) requestWakeLock()
+  else { wakeLock?.release().catch(() => {}); wakeLock = null }
+}
+function requestWakeLock() {
+  if (!awake || wakeLock || document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return
+  navigator.wakeLock.request('screen').then(l => {
+    if (!awake) { l.release().catch(() => {}); return }
+    wakeLock = l
+    l.addEventListener('release', () => { if (wakeLock === l) wakeLock = null })
+  }, () => {})
+}
+if (typeof document !== 'undefined') {
+  // The browser drops the wake lock whenever the page is hidden; take it again on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return
+    requestWakeLock()
+    // A frozen page's minutes away are not a stalled download: give the worker a moment to wake
+    if (state.phase === 'download' || state.phase === 'import') lastProgress = Date.now() - 45_000
+  })
+}
+
+// A download the user started and has not paused is carried on by the next page that loads: the
+// Android app reloads the page when reopened from its icon (before 1.0.1), and its tabs and
+// pull-to-refresh are full page loads, any of which ends the worker mid-download
+const RESUME_KEY = 'offline-downloading'
+const wantResume = (on: boolean) => { try { if (on) localStorage.setItem(RESUME_KEY, '1'); else localStorage.removeItem(RESUME_KEY) } catch {} }
+const shouldResume = () => { try { return !!localStorage.getItem(RESUME_KEY) } catch { return false } }
 
 let worker: Worker | null = null
 let seq = 0
@@ -82,6 +120,7 @@ function getWorker(): Worker {
       set({ phase: m.phase, done: m.done, total: m.total, speed, persisted: m.persisted, error: null })
     } else if (m.type === 'done') {
       samples.length = 0
+      wantResume(false)
       set({ phase: 'done', status: m.status, error: null })
       notifyServiceWorker()
     } else if (m.type === 'paused') {
@@ -90,6 +129,7 @@ function getWorker(): Worker {
     } else if (m.type === 'error') {
       samples.length = 0
       const busy = /lock|NoModificationAllowed|InvalidState|access handle/i.test(m.message || '')
+      if (m.code === 'space') wantResume(false)
       set({
         phase: 'error',
         status: m.status ?? state.status,
@@ -109,6 +149,8 @@ function call<T>(type: string, extra: Record<string, unknown> = {}): Promise<T> 
   })
 }
 
+const downloading = () => state.phase === 'download' || state.phase === 'import'
+
 /** Reads what is on the device. Safe to call often; only the first call starts the worker. */
 export async function refreshOfflineStatus(): Promise<OfflineStatus | null> {
   if (!offlineSupported()) { set({ phase: 'unsupported' }); return null }
@@ -116,10 +158,14 @@ export async function refreshOfflineStatus(): Promise<OfflineStatus | null> {
   if (state.phase === 'idle') set({ phase: 'checking' })
   try {
     const status = await call<OfflineStatus>('status')
+    // A download may have started while the status was read
+    if (downloading()) return status
     set({
       status,
       phase: status.ready ? 'done' : state.phase === 'error' ? 'error' : status.staged > 0 ? 'paused' : 'idle',
     })
+    if (status.ready) wantResume(false)
+    else if (status.manifest && shouldResume() && navigator.onLine) startOfflineDownload()
     return status
   } catch (e) {
     set({ phase: 'error', error: { code: 'busy', message: String((e as Error).message) } })
@@ -158,16 +204,19 @@ export function startOfflineDownload() {
   watch()
   samples.length = 0
   try { localStorage.setItem('offline-started', '1') } catch {}
+  wantResume(true)
   set({ phase: 'download', error: null })
   cacheOfflineShell()
   call('download', { base: OFFLINE_FILES }).catch(() => {})
 }
 
 export function pauseOfflineDownload() {
+  wantResume(false)
   call('pause').catch(() => {})
 }
 
 export async function removeOfflineData() {
+  wantResume(false)
   const status = await call<OfflineStatus>('remove')
   set({ phase: 'idle', status, done: 0, total: 0, error: null })
   notifyServiceWorker()
