@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_nav_search"
+        android:shortcutShortLabel="@string/shortcut_search">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://hadith.dev/search"
+            android:targetClass="dev.hadith.app.MainActivity"
+            android:targetPackage="dev.hadith.app" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="books"
+        android:enabled="true"
+        android:icon="@drawable/ic_nav_books"
+        android:shortcutShortLabel="@string/shortcut_books">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://hadith.dev/books"
+            android:targetClass="dev.hadith.app.MainActivity"
+            android:targetPackage="dev.hadith.app" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="narrators"
+        android:enabled="true"
+        android:icon="@drawable/ic_nav_narrators"
+        android:shortcutShortLabel="@string/shortcut_narrators">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://hadith.dev/narrators"
+            android:targetClass="dev.hadith.app.MainActivity"
+            android:targetPackage="dev.hadith.app" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="offline"
+        android:enabled="true"
+        android:icon="@drawable/ic_offline"
+        android:shortcutShortLabel="@string/shortcut_offline">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://hadith.dev/offline"
+            android:targetClass="dev.hadith.app.MainActivity"
+            android:targetPackage="dev.hadith.app" />
+    </shortcut>
+</shortcuts>

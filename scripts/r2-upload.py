@@ -44,6 +44,8 @@ LAST = re.compile(r"^(manifest\.json|latest(-mac|-linux)?\.yml|latest\.json)$") 
 def headers(name):
     if LAST.match(name):
         return ("application/json; charset=utf-8" if name.endswith(".json") else "text/yaml; charset=utf-8"), "no-cache"
+    if name.endswith(".apk"):
+        return "application/vnd.android.package-archive", "public, max-age=31536000, immutable"
     if re.search(r"\.(exe|dmg|zip|AppImage|deb|blockmap)$", name):
         return "application/octet-stream", "public, max-age=31536000, immutable"   # the version is in the name
     if name.endswith(".gz"):

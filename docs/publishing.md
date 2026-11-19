@@ -12,6 +12,7 @@ fix, new tables). Each takes one upload command once built. Work through the ste
 → offline build → upload → verify → update the README → tidy up.
 
 The desktop app (Windows, macOS, Linux) has its own release flow, also through R2 (`files.hadith.dev/desktop/`): see [desktop.md](desktop.md).
+The Android app (`dev.hadith.app`) publishes its signed APK and `latest.json` through R2 (`files.hadith.dev/android/`): see [android.md](android.md).
 
 ## How it is wired (set up 2026-11-19)
 

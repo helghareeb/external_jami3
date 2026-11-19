@@ -8,6 +8,8 @@
 import { useEffect, useRef, useState } from 'react'
 import OfflineManager from './OfflineManager'
 import DesktopApps from './DesktopApps'
+import AndroidApp from './AndroidApp'
+import { isAndroidDevice } from '@/lib/androidApp'
 import { refreshOfflineStatus, useOfflineState } from '@/lib/offline/client'
 
 declare global {
@@ -19,12 +21,14 @@ const APP_CSS = '/offline/app/app.css'
 
 export default function OfflineApp() {
   const [target, setTarget] = useState<string | null>(null)
+  const [androidFirst, setAndroidFirst] = useState(false)
   const offline = useOfflineState()
 
   useEffect(() => {
     // The address asked for (captured before Next.js rewrote the bar to /offline)
     const t = window.__OFFLINE_TARGET || location.pathname + location.search
     setTarget(t.replace(/\/+$/, '') || '/')
+    setAndroidFirst(isAndroidDevice())
     refreshOfflineStatus()
   }, [])
 
@@ -35,7 +39,17 @@ export default function OfflineApp() {
       <div className="max-w-4xl mx-auto font-sans">
         <OfflineBar online={online} />
         <OfflineManager />
-        <DesktopApps />
+        {androidFirst ? (
+          <>
+            <AndroidApp />
+            <DesktopApps />
+          </>
+        ) : (
+          <>
+            <DesktopApps />
+            <AndroidApp />
+          </>
+        )}
       </div>
     )
   }

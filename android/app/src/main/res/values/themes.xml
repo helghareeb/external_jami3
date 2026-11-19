@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Hadith.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_emerald</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Hadith</item>
+    </style>
+
+    <style name="Theme.Hadith" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_emerald</item>
+        <item name="colorOnPrimary">@color/ink_dark</item>
+        <item name="colorSecondary">@color/brand_gold</item>
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorOnSurface">@color/ink_light</item>
+        <item name="android:windowBackground">@color/paper_light</item>
+    </style>
+</resources>

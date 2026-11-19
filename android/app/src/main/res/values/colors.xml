@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_emerald">#0F3D2E</color>
+    <color name="brand_emerald_dark">#0A2C21</color>
+    <color name="brand_gold">#C9A96B</color>
+
+    <color name="paper_light">#FAF8F4</color>
+    <color name="surface_light">#FFFDF7</color>
+    <color name="ink_light">#14151A</color>
+    <color name="muted_light">#747873</color>
+    <color name="border_light">#E4DFD2</color>
+
+    <color name="paper_dark">#101513</color>
+    <color name="surface_dark">#17201D</color>
+    <color name="ink_dark">#F8F1E4</color>
+    <color name="muted_dark">#A3ACA6</color>
+    <color name="border_dark">#29332E</color>
+</resources>

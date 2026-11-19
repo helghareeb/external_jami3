@@ -14,6 +14,7 @@ import {
   useOfflineState, type OfflineManifest,
 } from '@/lib/offline/client'
 import { desktopAppReplacesPwa, inDesktopApp } from '@/lib/desktopApps'
+import { inAndroidApp } from '@/lib/androidApp'
 
 const DISMISS_KEY = 'offline-offer-dismissed'
 const DISMISS_DAYS = 14
@@ -22,6 +23,7 @@ const UPDATE_DISMISS_DAYS = 1
 
 const standalone = () =>
   inDesktopApp() ||                                      // the desktop app counts as the installed app
+  inAndroidApp() ||                                      // the Android app counts as the installed app
   window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
 
 export default function OfflineOffer() {
@@ -117,8 +119,8 @@ export default function OfflineOffer() {
     startOfflineDownload()
   }
 
-  // In the desktop app «الجامع» is already installed: the button only downloads the encyclopedia
-  const desk = inDesktopApp()
+  // In an installed native app (desktop or Android) «الجامع» is already installed: only download the encyclopedia
+  const desk = inDesktopApp() || inAndroidApp()
   return (
     <div role="dialog" aria-label="استخدم الجامع دون إنترنت"
       className="fixed inset-x-3 sm:inset-x-auto sm:left-4 sm:w-[420px] z-[60] rounded-2xl bg-[#0F3D2E] text-[#F8F1E4] shadow-2xl border border-[#C9A96B]/40 p-4 font-sans"

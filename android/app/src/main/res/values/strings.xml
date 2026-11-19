@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">الجامع</string>
+    <string name="app_subtitle">موسوعة الحديث النبوي الشريف</string>
+
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_search">البحث</string>
+    <string name="nav_books">الكتب</string>
+    <string name="nav_narrators">الرواة</string>
+    <string name="nav_more">المزيد</string>
+
+    <string name="more_offline">الجامع دون إنترنت</string>
+    <string name="more_saved">مكتبتي والمحفوظات</string>
+    <string name="more_share">مشاركة الصفحة</string>
+    <string name="more_copy">نسخ الرابط</string>
+    <string name="more_refresh">تحديث الصفحة</string>
+    <string name="more_version">الجامع — الإصدار %1$s</string>
+
+    <string name="offline_title">لا يوجد اتصال بالإنترنت</string>
+    <string name="offline_message">تحقّق من الاتصال وأعد المحاولة، أو افتح النسخة المحفوظة إن كنت قد حمّلتها على جهازك.</string>
+    <string name="offline_retry">إعادة المحاولة</string>
+    <string name="offline_open_saved">النسخة المحفوظة</string>
+
+    <string name="toast_copied">تم نسخ الرابط</string>
+    <string name="toast_download_started">بدأ التنزيل…</string>
+    <string name="toast_cannot_open">تعذّر فتح الرابط</string>
+
+    <string name="shortcut_search">البحث</string>
+    <string name="shortcut_books">الكتب</string>
+    <string name="shortcut_narrators">الرواة</string>
+    <string name="shortcut_offline">دون إنترنت</string>
+</resources>
