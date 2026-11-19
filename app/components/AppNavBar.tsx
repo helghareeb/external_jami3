@@ -16,6 +16,7 @@
 // Where the browser offers it (Chromium's tabbed app mode, manifest display_override "tabbed"),
 // the window has real tabs and its own controls, and this bar stays hidden.
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { inDesktopApp } from '@/lib/desktopApps'
 
 type NavApi = EventTarget & { canGoBack?: boolean; canGoForward?: boolean }
 type Tab = { id: number; src: string; url: string; title: string; stack: string[]; idx: number; pending: number | null }
@@ -29,6 +30,7 @@ const FRAME_PREFIX = 'aljami-tab-'
 const BAR_H = 36
 
 const isStandalone = () =>
+  inDesktopApp() ||                                      // the desktop app's window (desktop/) has none either
   window.matchMedia('(display-mode: standalone)').matches ||
   window.matchMedia('(display-mode: fullscreen)').matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true

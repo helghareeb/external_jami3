@@ -1,14 +1,14 @@
 {
   "name": "hadith-desktop",
   "productName": "Hadith",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "الجامع — موسوعة الحديث (hadith.dev) لسطح المكتب",
   "homepage": "https://hadith.dev",
   "author": "hadith.dev",
   "license": "UNLICENSED",
   "private": true,
   "main": "main.js",
-  "hadithOffline": false,
+  "hadithOffline": true,
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",

@@ -1,15 +1,20 @@
 // الجامع — hadith.dev for Windows, macOS and Linux.
 //
-// Stage 1 (now): the site itself in a secure window, with automatic app updates.
-// Stage 2 (after the PWA work lands): the offline edition — the database downloaded once into the app's own
-// folder (userData), not the browser's storage, so it is never evicted. See docs/desktop.md.
-const { app, BrowserWindow, shell, Menu, dialog } = require('electron')
+// The app is hadith.dev in its own window and its own browser profile (the app's userData folder). Offline works
+// the way the installed browser app and the Android app do: the site's service worker keeps the offline reader,
+// and «الجامع دون إنترنت» downloads the encyclopedia into the profile's storage (PGlite in OPFS). That profile
+// belongs to the app alone, so nothing the user does in their browser — clearing data, private windows, quota —
+// touches it. The site treats this window as an installed app (window.hadithDesktop, preload.js). docs/desktop.md.
+const { app, BrowserWindow, shell, Menu, dialog, session } = require('electron')
 const path = require('node:path')
 
 const SITE = 'https://hadith.dev'
 const SITE_HOSTS = new Set(['hadith.dev', 'www.hadith.dev'])
 
-// One window per running app: a second launch focuses the first.
+// A separate profile for tests (HADITH_PROFILE=<folder>), so a test never touches the user's downloaded data.
+if (process.env.HADITH_PROFILE) app.setPath('userData', path.resolve(process.env.HADITH_PROFILE))
+
+// One running app: a second launch focuses the window that is already open.
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
@@ -28,6 +33,61 @@ function openOutside(url) {
   try { if (['https:', 'http:', 'mailto:'].includes(new URL(url).protocol)) shell.openExternal(url) } catch { /* ignore */ }
 }
 
+// What the site may ask the app for. Everything else (camera, location, notifications …) is refused.
+const ALLOWED = new Set(['persistent-storage', 'clipboard-sanitized-write', 'clipboard-read', 'fullscreen', 'storage-access'])
+function setupPermissions() {
+  const ok = (permission, origin) => ALLOWED.has(permission) && isSite(origin || '')
+  session.defaultSession.setPermissionRequestHandler((wc, permission, callback, details) =>
+    callback(ok(permission, details?.requestingUrl || wc.getURL())))
+  session.defaultSession.setPermissionCheckHandler((_wc, permission, origin) => ok(permission, origin))
+}
+
+const WEB_PREFS = {
+  preload: path.join(__dirname, 'preload.js'),
+  contextIsolation: true,
+  sandbox: true,
+  nodeIntegration: false,
+  spellcheck: false,
+  additionalArguments: [`--hadith-version=${app.getVersion()}`],
+}
+
+// Every window (the main one and any the site opens): site pages stay in the app, other sites open in the
+// user's browser, and the usual browser keys work although there is no menu bar.
+function guard(wc) {
+  wc.setWindowOpenHandler(({ url }) => {
+    if (isSite(url)) {
+      return { action: 'allow', overrideBrowserWindowOptions: { width: 1180, height: 820, autoHideMenuBar: true, icon: path.join(__dirname, 'build', 'icon.png'), webPreferences: WEB_PREFS } }
+    }
+    openOutside(url)
+    return { action: 'deny' }
+  })
+  wc.on('will-navigate', (e, url) => {
+    if (!isSite(url) && !url.startsWith('file:')) { e.preventDefault(); openOutside(url) }
+  })
+  wc.on('before-input-event', (e, input) => {
+    if (input.type !== 'keyDown') return
+    const mod = input.control || input.meta
+    const key = input.key
+    let handled = true
+    if (input.alt && key === 'ArrowLeft') wc.navigationHistory.goBack()
+    else if (input.alt && key === 'ArrowRight') wc.navigationHistory.goForward()
+    else if (key === 'F5' || (mod && key.toLowerCase() === 'r')) wc.reload()
+    else if (mod && (key === '=' || key === '+')) wc.setZoomLevel(wc.getZoomLevel() + 0.5)
+    else if (mod && key === '-') wc.setZoomLevel(wc.getZoomLevel() - 0.5)
+    else if (mod && key === '0') wc.setZoomLevel(0)
+    else if (key === 'F11') { const w = BrowserWindow.fromWebContents(wc); if (w) w.setFullScreen(!w.isFullScreen()) }
+    else handled = false
+    if (handled) e.preventDefault()
+  })
+  // No connection and nothing kept by the site's service worker yet (the reader was never opened offline-ready):
+  // a local page that explains and retries.
+  wc.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
+    if (isMainFrame && code !== -3 /* aborted */ && isSite(url)) {
+      wc.loadFile(path.join(__dirname, 'pages', 'no-connection.html'), { query: { to: url } })
+    }
+  })
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -39,34 +99,9 @@ function createWindow() {
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
     show: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      sandbox: true,
-      nodeIntegration: false,
-      spellcheck: false,
-      additionalArguments: [`--hadith-version=${app.getVersion()}`],
-    },
+    webPreferences: WEB_PREFS,
   })
   win.once('ready-to-show', () => win.show())
-
-  // Links to other sites open in the user's browser; hadith.dev pages stay in the app.
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (isSite(url)) return { action: 'allow' }
-    openOutside(url)
-    return { action: 'deny' }
-  })
-  win.webContents.on('will-navigate', (e, url) => {
-    if (!isSite(url) && !url.startsWith('file:')) { e.preventDefault(); openOutside(url) }
-  })
-
-  // No connection (stage 1 needs one): a local page that retries.
-  win.webContents.on('did-fail-load', (_e, code, _desc, url, isMainFrame) => {
-    if (isMainFrame && code !== -3 /* aborted */ && isSite(url)) {
-      win.loadFile(path.join(__dirname, 'pages', 'no-connection.html'), { query: { to: url } })
-    }
-  })
-
   win.loadURL(SITE)
   return win
 }
@@ -86,7 +121,7 @@ function setupUpdates() {
       cancelId: 1,
       title: 'تحديث الجامع',
       message: `الإصدار ${info.version} جاهز`,
-      detail: 'يُثبَّت التحديث عند إعادة تشغيل التطبيق.',
+      detail: 'يُثبَّت التحديث عند إعادة تشغيل التطبيق. الموسوعة المحفوظة على الجهاز تبقى كما هي.',
     })
     if (response === 0) autoUpdater.quitAndInstall()
   })
@@ -97,6 +132,8 @@ function setupUpdates() {
 
 function start() {
   if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
+  setupPermissions()
+  app.on('web-contents-created', (_e, wc) => guard(wc))
   createWindow()
   setupUpdates()
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
