@@ -13,33 +13,59 @@ interface GroupMember {
 
 export default async function MatnGroupSection({ hadithId }: { hadithId: number }) {
   const groupRes = await pool.query<{ group_id: number }>(
-    `SELECT group_id FROM hadith_group_matn WHERE hadith_main_id = $1 LIMIT 1`,
+    `SELECT DISTINCT group_id
+     FROM hadith_group_matn
+     WHERE hadith_main_id = $1 AND group_id IS NOT NULL
+     ORDER BY group_id`,
     [hadithId]
-  ).catch(() => ({ rows: [] }))
+  ).catch(() => ({ rows: [] as Array<{ group_id: number }> }))
 
-  const groupId = groupRes.rows[0]?.group_id ?? null
-  if (!groupId) return null
+  const groupIds = groupRes.rows.map(r => Number(r.group_id))
+  if (groupIds.length === 0) return null
 
-  const membersRes = await pool.query<GroupMember>(
-    `SELECT DISTINCT ON (gm.hadith_main_id)
-            gm.hadith_main_id AS hadith_id, ht.book_name, ht.tarf, ht.part_num, ht.page_num
-     FROM hadith_group_matn gm
-     JOIN hadith_toc ht ON ht.main_id = gm.hadith_main_id
-     WHERE gm.group_id = $1 AND gm.hadith_main_id != $2
-     ORDER BY gm.hadith_main_id, ht.book_id, ht.part_num NULLS LAST, ht.page_num NULLS LAST
-     LIMIT 20`,
-    [groupId, hadithId]
-  ).catch(() => ({ rows: [] }))
+  const [countRes, membersRes] = await Promise.all([
+    pool.query<{ total: number }>(
+      `SELECT COUNT(DISTINCT gm.hadith_main_id)::int AS total
+       FROM hadith_group_matn gm
+       JOIN hadith_toc ht ON ht.main_id = gm.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
+       WHERE gm.group_id = ANY($1::int[]) AND gm.hadith_main_id != $2`,
+      [groupIds, hadithId]
+    ).catch(() => ({ rows: [{ total: 0 }] })),
+    pool.query<GroupMember>(
+      `SELECT hadith_id, book_name, tarf, part_num, page_num
+       FROM (
+         SELECT DISTINCT ON (gm.hadith_main_id)
+                gm.hadith_main_id AS hadith_id, ht.book_name, ht.tarf, ht.part_num, ht.page_num,
+                ht.book_id, b.strong
+         FROM hadith_group_matn gm
+         JOIN hadith_toc ht ON ht.main_id = gm.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
+         LEFT JOIN books b ON b.id = ht.book_id
+         WHERE gm.group_id = ANY($1::int[]) AND gm.hadith_main_id != $2
+         ORDER BY gm.hadith_main_id, ht.book_id
+       ) sub
+       ORDER BY sub.strong ASC NULLS LAST, sub.book_id ASC, sub.hadith_id ASC
+       LIMIT 24`,
+      [groupIds, hadithId]
+    ).catch(() => ({ rows: [] as GroupMember[] })),
+  ])
 
   const members = membersRes.rows
+  const totalCount = Number(countRes.rows[0]?.total ?? members.length)
   if (members.length === 0) return null
 
   return (
     <CollapsibleSection
       id="matn-group"
       label="روايات بنفس المتن"
-      badges={<Chips chips={[{ text: `${members.length} مصدر` }]} />}
-      sub={`روايات بنفس المتن في ${members.length} مصدر آخر`}
+      badges={
+        <Chips
+          chips={[
+            { text: `${totalCount} رواية` },
+            ...(groupIds.length > 1 ? [{ text: `${groupIds.length} مجموعة`, tone: 'violet' as const }] : []),
+          ]}
+        />
+      }
+      sub={`روايات بنفس المتن في ${totalCount} موضع${groupIds.length > 1 ? ` عبر ${groupIds.length} مجموعة متن` : ''}`}
     >
       <div className="flex flex-wrap gap-2">
         {members.map(m => (
@@ -63,6 +89,16 @@ export default async function MatnGroupSection({ hadithId }: { hadithId: number 
           </Link>
         ))}
       </div>
+      {totalCount > members.length && (
+        <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-500">
+          <span>
+            يُعرض أول {members.length} رواية من أصل {totalCount.toLocaleString('ar-EG')} في مجاميع المتن
+          </span>
+          <Link href={`/hadith/${hadithId}/witnesses`} className="text-green-700 hover:underline font-semibold">
+            عرض صفحة الشواهد والمتابعات ←
+          </Link>
+        </div>
+      )}
     </CollapsibleSection>
   )
 }

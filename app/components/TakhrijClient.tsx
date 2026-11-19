@@ -169,7 +169,7 @@ function sourcePath(source: OtherTakhrijSource): string | null {
 
 /** Display the takhrij citation number independent of the global numbering switch. */
 function numText(row: TakhrijRow): string {
-  return row.tarqeem_harf || ''
+  return row.tarqeem_harf || row.tarqeem_matboa1 || ''
 }
 
 function sortRows(rows: TakhrijRow[], sortBy: SortBy): TakhrijRow[] {
@@ -404,15 +404,34 @@ function otherSourceExtra(source: OtherTakhrijSource, viewMode: ViewMode): strin
   return extras.length > 0 ? ` ${extras.join(' ')}` : ''
 }
 
+function groupOtherSources(sources: OtherTakhrijSource[]): Array<{ bookKey: string; bookTitle: string; entries: OtherTakhrijSource[] }> {
+  const order: string[] = []
+  const map = new Map<string, { bookKey: string; bookTitle: string; entries: OtherTakhrijSource[] }>()
+  for (const s of sources) {
+    const key = s.book_id != null ? `b:${s.book_id}` : `t:${s.book_title}`
+    if (!map.has(key)) {
+      order.push(key)
+      map.set(key, { bookKey: key, bookTitle: s.book_title, entries: [] })
+    }
+    map.get(key)!.entries.push(s)
+  }
+  return order.map(k => map.get(k)!)
+}
+
 function buildOtherSourcesText(sources: OtherTakhrijSource[], viewMode: ViewMode): string {
   if (sources.length === 0) return ''
 
-  const parts = sources.map(source => {
-    const location = source.part_num > 0 || source.page_num > 0
-      ? `(${source.part_num > 0 ? source.part_num : '-'} / ${source.page_num > 0 ? source.page_num : '-'})`
-      : ''
+  const parts = groupOtherSources(sources).map(group => {
+    const locs = group.entries
+      .map(entry => {
+        const location = entry.part_num > 0 || entry.page_num > 0
+          ? `(${entry.part_num > 0 ? entry.part_num : '-'} / ${entry.page_num > 0 ? entry.page_num : '-'})`
+          : ''
+        return `${location}${otherSourceExtra(entry, viewMode)}`.trim()
+      })
+      .filter(Boolean)
 
-    return `"${source.book_title}"${location ? ` ${location}` : ''}${otherSourceExtra(source, viewMode)}`
+    return `"${group.bookTitle}"${locs.length ? ` ${locs.join(' ، ')}` : ''}`
   })
 
   return `ذُكر في ${parts.join(' و')}.`
@@ -425,6 +444,8 @@ function OtherSourcesView({ sources, viewMode }: { sources: OtherTakhrijSource[]
     return <p className="text-sm text-gray-400 py-4">لا توجد كتب أخرى مسجلة لهذا الحديث</p>
   }
 
+  const groups = groupOtherSources(sources)
+
   return (
     <div dir="rtl">
       <div className="flex justify-end mb-3">
@@ -432,22 +453,32 @@ function OtherSourcesView({ sources, viewMode }: { sources: OtherTakhrijSource[]
       </div>
       <p className="ui-prose-block">
         <span>ذُكر في </span>
-        {sources.map((source, index) => {
-        const location = source.part_num > 0 || source.page_num > 0
-          ? `(${source.part_num > 0 ? source.part_num : '-'} / ${source.page_num > 0 ? source.page_num : '-'})`
-          : null
-
-        return (
-          <span key={`${source.id}-${index}`}>
-            {index > 0 && <span> و</span>}
-            <Link href={source.href} className="ui-link font-semibold">
-              &quot;{source.book_title}&quot;
-            </Link>
-            {location && <span> {location}</span>}
-            {otherSourceExtra(source, viewMode)}
+        {groups.map((group, gi) => (
+          <span key={group.bookKey}>
+            {gi > 0 && <span> و</span>}
+            {group.entries[0]?.book_id ? (
+              <Link href={`/books/${group.entries[0].book_id}`} className="ui-link font-semibold">
+                &quot;{group.bookTitle}&quot;
+              </Link>
+            ) : (
+              <span className="font-semibold">&quot;{group.bookTitle}&quot;</span>
+            )}
+            {group.entries.map((source, ei) => {
+              const location = source.part_num > 0 || source.page_num > 0
+                ? `(${source.part_num > 0 ? source.part_num : '-'} / ${source.page_num > 0 ? source.page_num : '-'})`
+                : 'نص'
+              return (
+                <span key={`${source.id}-${ei}`}>
+                  <span>{ei > 0 ? ' ، ' : ' '}</span>
+                  <Link href={source.href} className="ui-link">
+                    {location}
+                  </Link>
+                  {otherSourceExtra(source, viewMode)}
+                </span>
+              )
+            })}
           </span>
-        )
-      })}
+        ))}
       </p>
     </div>
   )
@@ -723,7 +754,7 @@ export default function TakhrijClient({
 
       <div className="ui-segmented ui-segmented-fill mb-4 w-full sm:w-auto">
         {([
-          ['matn', 'كتب المتون', visibleBooks || totalBooks],
+          ['matn', 'كتب المتون', visibleBooks],
           ['other', 'كتب أخرى', otherSources.length],
         ] as [SourceGroup, string, number][]).map(([group, label, count]) => (
           <button
@@ -891,7 +922,7 @@ export default function TakhrijClient({
       {truncated && (
         <p className="text-xs text-gray-400 mt-2 text-center">
           يُعرض أول 1500 رواية من أصل {totalBooks.toLocaleString('ar-EG')} — لمزيد من الطرق انظر{' '}
-          <a href="#adawat" className="text-green-600 hover:underline">صفحة الشواهد الكاملة</a>
+          <Link href={`/hadith/${sourceId}/witnesses`} className="text-green-600 hover:underline">صفحة الشواهد الكاملة</Link>
         </p>
       )}
 

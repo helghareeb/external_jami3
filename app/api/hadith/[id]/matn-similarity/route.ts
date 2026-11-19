@@ -60,7 +60,7 @@ export async function GET(
        SELECT DISTINCT group_id FROM takhrij WHERE hadith_id = $1 AND group_id IS NOT NULL
      )
      ORDER BY t.hadith_id, lc.description NULLS LAST
-     LIMIT 150`,
+     LIMIT 1500`,
     [hadithId]
   ).catch(() => ({ rows: [] }))
 

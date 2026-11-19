@@ -594,26 +594,85 @@ function VersionList({ source, others, chainOnly }: {
   chainOnly: SourceRef[]
 }) {
   const [openAll, setOpenAll] = useState(false)
-  const diffs = useMemo(() => {
-    const srcWords = tokenize(source.matn)
-    const srcNorm = srcWords.map(normWord)
-    return others.map(e => diffVersion(srcWords, srcNorm, e)).sort((a, b) => b.shared - a.shared)
-  }, [source, others])
-  if (diffs.length === 0 && chainOnly.length === 0) return null
+  const [selectedBook, setSelectedBook] = useState('')
+  const [visibleCount, setVisibleCount] = useState(25)
+
+  const srcWords = useMemo(() => tokenize(source.matn), [source.matn])
+  const srcNorm = useMemo(() => srcWords.map(normWord), [srcWords])
+  const srcSet = useMemo(() => new Set(srcNorm), [srcNorm])
+
+  const bookOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const o of others) counts.set(o.bookTitle, (counts.get(o.bookTitle) || 0) + 1)
+    return Array.from(counts.entries()).map(([title, count]) => ({ title, count }))
+  }, [others])
+
+  const sortedOthers = useMemo(() => {
+    const base = selectedBook ? others.filter(o => o.bookTitle === selectedBook) : others
+    const scored = base.map(e => {
+      const w = tokenize(e.matn).map(normWord)
+      let hits = 0
+      const seen = new Set<string>()
+      for (const tok of w) {
+        if (!seen.has(tok) && srcSet.has(tok)) {
+          hits++
+          seen.add(tok)
+        }
+      }
+      const approx = (2 * hits) / (srcSet.size + w.length || 1)
+      return { e, approx }
+    })
+    scored.sort((a, b) => b.approx - a.approx)
+    return scored.map(x => x.e)
+  }, [others, selectedBook, srcSet])
+
+  const visibleOthers = useMemo(
+    () => sortedOthers.slice(0, visibleCount),
+    [sortedOthers, visibleCount]
+  )
+
+  const diffs = useMemo(
+    () => visibleOthers.map(e => diffVersion(srcWords, srcNorm, e)).sort((a, b) => b.shared - a.shared),
+    [srcWords, srcNorm, visibleOthers]
+  )
+
+  if (sortedOthers.length === 0 && chainOnly.length === 0) return null
 
   return (
-    <details className="version-texts rounded-xl border border-border p-4">
+    <details className="version-texts rounded-xl border border-border p-4" open>
       <summary className="flex items-center justify-between cursor-pointer gap-2 text-sm font-bold text-gray-700">
         <span>
           نصوص الروايات كاملة
-          <span className="text-xs font-normal text-gray-400 mr-2">({diffs.length} رواية)</span>
+          <span className="text-xs font-normal text-gray-400 mr-2">({sortedOthers.length} رواية)</span>
         </span>
         <span aria-hidden="true">⌄</span>
       </summary>
       <div className="mt-3">
-      <button type="button" onClick={() => setOpenAll(o => !o)} className="text-xs text-green-700 hover:underline mb-3">
-        {openAll ? 'طيّ الكل' : 'فتح الكل'}
-      </button>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <button type="button" onClick={() => setOpenAll(o => !o)} className="text-xs text-green-700 hover:underline">
+          {openAll ? 'طيّ الكل' : 'فتح الكل'}
+        </button>
+        {bookOptions.length > 1 && (
+          <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+            <span>الكتاب:</span>
+            <select
+              value={selectedBook}
+              onChange={e => {
+                setSelectedBook(e.target.value)
+                setVisibleCount(25)
+              }}
+              className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-ink"
+            >
+              <option value="">كل الكتب ({others.length})</option>
+              {bookOptions.map(b => (
+                <option key={b.title} value={b.title}>
+                  {b.title} ({b.count})
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       <p className="text-xs text-gray-400 mb-2">
         متن هذا الحديث أولًا، ثم متن كل روايةٍ كاملًا مقابَلًا به كلمةً كلمة — مرتّبةً من الأقرب إلى الأبعد
       </p>
@@ -656,6 +715,31 @@ function VersionList({ source, others, chainOnly }: {
           </details>
         ))}
       </div>
+      {sortedOthers.length > diffs.length && (
+        <div className="mt-3 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <span className="text-gray-500">
+            يُعرض {diffs.length} من أصل {sortedOthers.length} رواية
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setVisibleCount(c => c + 25)}
+              className="px-3 py-1 rounded-lg border border-green-200 bg-green-50 text-green-800 hover:bg-green-100 font-medium"
+            >
+              عرض ٢٥ رواية إضافية
+            </button>
+            {sortedOthers.length <= 150 && (
+              <button
+                type="button"
+                onClick={() => setVisibleCount(sortedOthers.length)}
+                className="px-3 py-1 rounded-lg border border-border bg-surface text-gray-600 hover:bg-gray-50"
+              >
+                عرض الكل ({sortedOthers.length})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {chainOnly.length > 0 && (
         <p className="text-xs text-gray-500 mt-3 leading-relaxed">
           <span className="font-semibold text-gray-600">أسانيد أخرى دون متنٍ مسجَّل: </span>
@@ -887,9 +971,14 @@ export default function MatnVariants({
     .map(p => ({ id: p.main_id, bookTitle: p.book_title, num: p.tarqeem_matboa1 ?? p.tarqeem_harf ?? null })),
   [rawParallels])
 
+  const MAX_LCS_PARALLELS = 80
+  const lcsCount = Math.min(MAX_LCS_PARALLELS, Math.max(0, textEntries.length - 1))
   const variants = useMemo(
-    () => textEntries.length >= 2 ? buildVariants(textEntries[0], textEntries.slice(1)) : [],
-    [textEntries],
+    () =>
+      (tab === 'merged' || tab === 'map') && textEntries.length >= 2
+        ? buildVariants(textEntries[0], textEntries.slice(1, 1 + MAX_LCS_PARALLELS))
+        : [],
+    [tab, textEntries],
   )
 
   if (loading) {
@@ -904,7 +993,7 @@ export default function MatnVariants({
     const tabDefs: Array<{ id: MatnVariantsTab; label: string; enabled: boolean }> = [
       { id: 'compound', label: 'المتن الجامع (الموسوعة)', enabled: true },
       { id: 'merged', label: 'المتن المُجمَّع', enabled: textEntries.length >= 2 },
-      { id: 'map', label: 'خريطة الاختلافات', enabled: textEntries.length >= 2 && variants.length > 0 },
+      { id: 'map', label: 'خريطة الاختلافات', enabled: textEntries.length >= 2 },
       { id: 'full', label: `نصوص الروايات كاملة (${Math.max(0, textEntries.length - 1)})`, enabled: textEntries.length >= 2 },
     ]
     const tabs = tabDefs.filter(t => t.enabled)
@@ -931,7 +1020,7 @@ export default function MatnVariants({
             <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
               <h3 className="text-sm font-bold text-gray-700">المتن المُجمَّع</h3>
               <span className="text-xs text-gray-400">
-                {variants.length} اختلافًا في {textEntries.length - 1} رواية
+                {variants.length} اختلافًا في {lcsCount} رواية{textEntries.length - 1 > MAX_LCS_PARALLELS ? ` (من ${textEntries.length - 1})` : ''}
               </span>
             </div>
             <p className="text-xs text-gray-400 mb-3">
@@ -943,14 +1032,21 @@ export default function MatnVariants({
           </div>
         )}
 
-        {tab === 'map' && variants.length > 0 && textEntries.length >= 2 && (
+        {tab === 'map' && textEntries.length >= 2 && (
           <div>
             <h3 className="text-sm font-bold text-gray-700 mb-1">خريطة الاختلافات</h3>
             <p className="text-xs text-gray-400 mb-3">
               المتن كاملًا من اليمين إلى اليسار: مواضع الاختلاف مظلَّلة بأرقامها، وتحت كلٍّ منها قراءة الروايات الأخرى لذلك الموضع وكتبها
+              {textEntries.length - 1 > MAX_LCS_PARALLELS ? ` (أول ${MAX_LCS_PARALLELS} رواية من ${textEntries.length - 1})` : ''}
             </p>
-            <DiffLegend point />
-            <VariantMap source={textEntries[0]} variants={variants} />
+            {variants.length === 0 ? (
+              <p className="text-sm text-gray-500">الروايات متفقة في ألفاظ هذا المتن.</p>
+            ) : (
+              <>
+                <DiffLegend point />
+                <VariantMap source={textEntries[0]} variants={variants} />
+              </>
+            )}
           </div>
         )}
 

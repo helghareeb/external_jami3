@@ -73,7 +73,7 @@ export async function GET(
        ORDER BY t.hadith_id, t.group_id
      ) sub
      ORDER BY sub.tarteeb NULLS LAST, sub.book_id, sub.main_id
-     LIMIT 200`,
+     LIMIT 1500`,
     [groupIds, hadithId]
   )
 

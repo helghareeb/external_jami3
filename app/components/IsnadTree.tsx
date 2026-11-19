@@ -649,6 +649,8 @@ export default function IsnadTree({
   const [treeErr, setTreeErr] = useState('')
   const [allChains, setAllChains] = useState<ChainRow[]>([])
   const [tahdethTypes, setTahdethTypes] = useState<Record<number, string>>({})
+  const [selectedBook, setSelectedBook] = useState<string>('')
+  const [graphLimit, setGraphLimit] = useState<number>(MAX_GRAPH_CHAINS)
 
   const narById = useMemo(() => {
     const m = new Map<number, NarratorInChain>()
@@ -674,11 +676,24 @@ export default function IsnadTree({
   // Narrator whose critics' sayings are open (set by clicking a narrator; never shown unasked).
   const [picked, setPicked] = useState<{ id: number; name: string; abb_name?: string | null } | null>(null)
 
+  const bookOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const c of allChains) {
+      counts.set(c.bookTitle, (counts.get(c.bookTitle) || 0) + 1)
+    }
+    return Array.from(counts.entries()).map(([title, count]) => ({ title, count }))
+  }, [allChains])
+
+  const filteredFullChains = useMemo(
+    () => (selectedBook ? allChains.filter(c => c.bookTitle === selectedBook) : allChains),
+    [allChains, selectedBook]
+  )
+
   const graphChains = useMemo(() => {
-    const cur = allChains.filter(c => c.hadithId === hadithId)
-    const others = allChains.filter(c => c.hadithId !== hadithId)
-    return [...cur, ...others].slice(0, MAX_GRAPH_CHAINS)
-  }, [allChains, hadithId])
+    const cur = filteredFullChains.filter(c => c.hadithId === hadithId)
+    const others = filteredFullChains.filter(c => c.hadithId !== hadithId)
+    return [...cur, ...others].slice(0, selectedBook ? Math.max(graphLimit, 120) : graphLimit)
+  }, [filteredFullChains, hadithId, graphLimit, selectedBook])
 
   // صِيَغ التحديث per link, counted across every cross-book route — only meaningful in the full tree.
   const fullEdgeTerms = useMemo(
@@ -761,12 +776,17 @@ export default function IsnadTree({
 
   // Drop a stale selection when leaving the full tree or loading a different hadith.
   useEffect(() => { if (mode !== 'full') setSelPath(null) }, [mode])
-  useEffect(() => { setSelPath(null); setPicked(null) }, [hadithId])
+  useEffect(() => {
+    setSelPath(null)
+    setPicked(null)
+    setSelectedBook('')
+    setGraphLimit(MAX_GRAPH_CHAINS)
+  }, [hadithId])
 
   if (chains.length === 0) return <p className="text-sm text-gray-400">لا يوجد إسناد مسجل لهذا الحديث</p>
 
   const showGraph = mode === 'single' || treePhase === 'done'
-  const isFullTruncated = mode === 'full' && allChains.length > graphChains.length
+  const isFullTruncated = mode === 'full' && filteredFullChains.length > graphChains.length
 
   return (
     <div dir="rtl" className="space-y-3">
@@ -798,11 +818,46 @@ export default function IsnadTree({
         )}
       </div>
 
+      {mode === 'full' && treePhase === 'done' && (bookOptions.length > 1 || isFullTruncated) && (
+        <div className="flex items-center gap-2 flex-wrap text-xs">
+          {bookOptions.length > 1 && (
+            <label className="inline-flex items-center gap-1.5 text-gray-600">
+              <span>تصفية بالكتاب:</span>
+              <select
+                value={selectedBook}
+                onChange={e => {
+                  setSelectedBook(e.target.value)
+                  setSelPath(null)
+                  setGraphLimit(MAX_GRAPH_CHAINS)
+                }}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-ink"
+              >
+                <option value="">كل الكتب ({allChains.length} طريقاً في {bookOptions.length} كتاب)</option>
+                {bookOptions.map(b => (
+                  <option key={b.title} value={b.title}>
+                    {b.title} ({b.count})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {isFullTruncated && graphChains.length < 150 && (
+            <button
+              type="button"
+              onClick={() => setGraphLimit(l => Math.min(filteredFullChains.length, l + 32, 150))}
+              className="rounded-lg border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100"
+            >
+              عرض المزيد ({Math.min(filteredFullChains.length, graphLimit + 32, 150)} من {filteredFullChains.length})
+            </button>
+          )}
+        </div>
+      )}
+
       <p className="text-xs text-gray-400">
         {mode === 'single'
           ? 'إسناد هذا الحديث — انقر على الراوي لعرض أقوال النقاد فيه · اسحب للتنقل'
           : (isFullTruncated
-              ? `عرض ${graphChains.length} من ${allChains.length} إسناد (أسانيد هذا الحديث أولاً)`
+              ? `عرض ${graphChains.length} من ${filteredFullChains.length} إسناد (${selectedBook || 'أسانيد هذا الحديث والأصح أولاً'})`
               : 'جميع مسارات الرواية عبر كتب التخريج')
             + (selPath ? ' — مسار محدّد (أزرق) · انقر الخلفية لإلغائه' : ' — انقر على خطٍّ لتظليل مساره كاملاً')}
       </p>

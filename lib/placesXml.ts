@@ -24,7 +24,8 @@ export function parsePlaceTags(xml: string): ParsedPlaceTag[] {
     const name = stripXmlToVerbatim(m[2]).replace(/[،؛:.!؟"«»]/g, '').trim()
     if (!name && !refId) continue
 
-    const key = refId ? `ref:${refId}` : `name:${name}`
+    const strippedName = name.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u08F0-\u08FF]/g, '').trim()
+    const key = refId ? `ref:${refId}` : `name:${strippedName || name}`
     if (seen.has(key)) continue
     seen.add(key)
 

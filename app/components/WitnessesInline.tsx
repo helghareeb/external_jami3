@@ -17,18 +17,41 @@ interface WitnessRow {
 
 export default function WitnessesInline({ hadithId }: { hadithId: number }) {
   const [witnesses, setWitnesses] = useState<WitnessRow[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/hadith/${hadithId}/witnesses-inline`)
+    setLoading(true)
+    setError(false)
+    fetch(`/api/hadith/${hadithId}/witnesses-inline?limit=80&offset=0`)
       .then(r => r.json())
       .then(data => {
-        setWitnesses(data.witnesses || [])
+        const list: WitnessRow[] = data.witnesses || []
+        setWitnesses(list)
+        setTotal(typeof data.total === 'number' ? data.total : list.length)
         setLoading(false)
       })
       .catch(() => { setError(true); setLoading(false) })
   }, [hadithId])
+
+  async function loadMore() {
+    if (loadingMore) return
+    setLoadingMore(true)
+    try {
+      const r = await fetch(`/api/hadith/${hadithId}/witnesses-inline?limit=80&offset=${witnesses.length}`)
+      const data = await r.json()
+      const next: WitnessRow[] = data.witnesses || []
+      setWitnesses(prev => {
+        const seen = new Set(prev.map(w => w.hadith_id))
+        return [...prev, ...next.filter(w => !seen.has(w.hadith_id))]
+      })
+      if (typeof data.total === 'number') setTotal(data.total)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (loading) return (
     <div className="space-y-3 animate-pulse">
@@ -78,6 +101,24 @@ export default function WitnessesInline({ hadithId }: { hadithId: number }) {
           </div>
         ))}
       </div>
+      {total > witnesses.length && (
+        <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-3 py-1.5 rounded-lg border border-green-200 bg-green-50 text-green-800 hover:bg-green-100 font-medium disabled:opacity-50"
+          >
+            {loadingMore ? 'جارٍ التحميل…' : `عرض المزيد (${witnesses.length.toLocaleString('ar-EG')} من ${total.toLocaleString('ar-EG')})`}
+          </button>
+          <Link
+            href={`/hadith/${hadithId}/witnesses`}
+            className="text-green-700 hover:underline font-semibold"
+          >
+            عرض جميع الشواهد ({total.toLocaleString('ar-EG')}) ←
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

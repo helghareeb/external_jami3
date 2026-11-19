@@ -100,32 +100,37 @@ export async function GET(
     contentRows = res.rows
 
     // Group-level شرح fallback (type_id = 6 across parallel narrations in the same takhrij groups)
-    if (includeGroup && selectedTypeId === 6 && contentRows.length < 100) {
-      const directIds = new Set(contentRows.map(r => Number(r.id)))
-      const remaining = 100 - contentRows.length
+    if (includeGroup && selectedTypeId === 6 && contentRows.length < 250) {
+      const directIds = Array.from(new Set(contentRows.map(r => Number(r.id))))
+      const remaining = 250 - contentRows.length
       const fbRes = await pool.query<ContentRow>(
-        `SELECT DISTINCT ON (hsc.id)
-                hsc.id, hsc.book_name,
-                hsc.section_text, hsc.part_num, hsc.page_num,
-                hsc.tarf, hsc.content,
-                hsl.type_id::int AS type_id,
-                coalesce(hst.name, 'الشروح') AS type_name,
-                true AS is_group_fallback,
-                t_other.hadith_id AS fallback_hadith_id,
-                b_src.title AS fallback_book_title
-         FROM takhrij t_self
-         JOIN takhrij t_other ON t_other.group_id = t_self.group_id AND t_other.hadith_id <> $1
-         JOIN hadith_service_links hsl ON hsl.hadith_id = t_other.hadith_id AND hsl.type_id = 6
-         JOIN hadith_service_content hsc ON hsc.id = hsl.service_content_id
-         LEFT JOIN hadith_service_types hst ON hst.id = hsl.type_id
-         LEFT JOIN books b_src ON b_src.id = t_other.book_id
-         WHERE t_self.hadith_id = $1
-         ORDER BY hsc.id, hsc.book_id, t_other.hadith_id
-         LIMIT 120`,
-        [hadithId]
+        `SELECT * FROM (
+           SELECT DISTINCT ON (hsc.id)
+                  hsc.id, hsc.book_name,
+                  hsc.section_text, hsc.part_num, hsc.page_num,
+                  hsc.tarf, hsc.content,
+                  hsl.type_id::int AS type_id,
+                  coalesce(hst.name, 'الشروح') AS type_name,
+                  true AS is_group_fallback,
+                  t_other.hadith_id AS fallback_hadith_id,
+                  b_src.title AS fallback_book_title,
+                  hsc.book_id AS hsc_book_id
+           FROM takhrij t_self
+           JOIN takhrij t_other ON t_other.group_id = t_self.group_id AND t_other.hadith_id <> $1
+           JOIN hadith_service_links hsl ON hsl.hadith_id = t_other.hadith_id AND hsl.type_id = 6
+           JOIN hadith_service_content hsc ON hsc.id = hsl.service_content_id
+           LEFT JOIN hadith_service_types hst ON hst.id = hsl.type_id
+           LEFT JOIN books b_src ON b_src.id = t_other.book_id
+           WHERE t_self.hadith_id = $1
+             AND NOT (hsc.id = ANY($2::int[]))
+           ORDER BY hsc.id, hsc.book_id, t_other.hadith_id
+         ) sub
+         ORDER BY sub.hsc_book_id ASC NULLS LAST, sub.id ASC
+         LIMIT $3`,
+        [hadithId, directIds.length > 0 ? directIds : [0], remaining]
       ).catch(() => ({ rows: [] as ContentRow[] }))
 
-      const extras = fbRes.rows.filter(r => !directIds.has(Number(r.id))).slice(0, remaining)
+      const extras = fbRes.rows
       if (extras.length > 0) {
         contentRows = [...contentRows, ...extras]
         if (!typeGroups.some(g => Number(g.type_id) === 6)) {

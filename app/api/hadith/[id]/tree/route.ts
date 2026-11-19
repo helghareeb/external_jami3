@@ -32,6 +32,7 @@ export async function GET(
          b.title as book_title,
          b.takhrij_author,
          b.takhrij_death,
+         b.strong as book_strong,
          ht.tarqeem_harf as hadith_num,
          it.sand_tahdeth as tahdeth_raw
        FROM takhrij t
@@ -43,9 +44,13 @@ export async function GET(
        WHERE t.group_id = ANY($1::int[])
          AND array_length(ic.narrator_id_array, 1) >= 2
      ) sub
-     ORDER BY narrator_id_array[1], array_length(narrator_id_array, 1)
-     LIMIT 100`,
-    [groupIds]
+     ORDER BY CASE WHEN hadith_id = $2 THEN 0 ELSE 1 END,
+              book_strong ASC NULLS LAST,
+              takhrij_death ASC NULLS LAST,
+              narrator_id_array[1],
+              array_length(narrator_id_array, 1)
+     LIMIT 1500`,
+    [groupIds, hadithId]
   ).catch(async () => {
     return pool.query(
       `SELECT narrator_id_array, hadith_id, book_title, NULL::text as takhrij_author, NULL::int as takhrij_death, NULL::text as hadith_num, NULL::text as tahdeth_raw
@@ -53,7 +58,8 @@ export async function GET(
          SELECT DISTINCT
            ic.narrator_id_array,
            ht.main_id as hadith_id,
-           b.title as book_title
+           b.title as book_title,
+           b.strong as book_strong
          FROM takhrij t
          JOIN isnad_hadiths ih ON ih.hadith_id = t.hadith_id
          JOIN isnad_chains ic ON ic.id = ih.isnad_id
@@ -62,9 +68,12 @@ export async function GET(
          WHERE t.group_id = ANY($1::int[])
            AND array_length(ic.narrator_id_array, 1) >= 2
        ) sub
-       ORDER BY narrator_id_array[1], array_length(narrator_id_array, 1)
-       LIMIT 100`,
-      [groupIds]
+       ORDER BY CASE WHEN hadith_id = $2 THEN 0 ELSE 1 END,
+                book_strong ASC NULLS LAST,
+                narrator_id_array[1],
+                array_length(narrator_id_array, 1)
+       LIMIT 1500`,
+      [groupIds, hadithId]
     )
   })
 
@@ -109,5 +118,5 @@ export async function GET(
     }),
   }))
 
-  return NextResponse.json({ chains, groupId, tahdethTypes })
+  return NextResponse.json({ chains, groupId, tahdethTypes, totalChains: chains.length })
 }

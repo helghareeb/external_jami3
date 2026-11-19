@@ -17,6 +17,12 @@ interface WitnessHadith {
   chain_count: number
 }
 
+interface CompanionFacet {
+  companion_id: number | null
+  companion_name: string
+  cnt: number
+}
+
 function stripTags(s: string | null) {
   return (s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -26,10 +32,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return hadithSectionMeta(id, `/hadith/${id}/witnesses`, 'الشواهد والمتابعات')
 }
 
-export default async function HadithWitnessesPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function HadithWitnessesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ page?: string; companion?: string }>
+}) {
   const { id } = await params
+  const sp = await searchParams
   const hadithId = parseInt(id)
   if (isNaN(hadithId)) notFound()
+
+  const pageNum = Math.max(1, parseInt(sp.page || '1', 10) || 1)
+  const companionParam = (sp.companion || '').trim()
+  const companionFilterId = companionParam === 'none' ? -1 : parseInt(companionParam, 10) || 0
+  const pageSize = 60
+  const offset = (pageNum - 1) * pageSize
 
   const [hadithRes, groupRes, matnGroupRes] = await Promise.all([
     pool.query(
@@ -81,36 +100,94 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
   }
 
   // Match Windows Catalog.xml view `Shwahed`: HGamhAlMatn \ HTakhreeg
-  const witnessesRes = await pool.query<WitnessHadith>(
-    `SELECT DISTINCT ON (COALESCE(comp.id::text, g2.hadith_main_id::text))
-           comp.id AS companion_id,
-           comp.name AS companion_name, comp.abb_name AS companion_abb,
-           g2.hadith_main_id AS hadith_id,
-           regexp_replace(coalesce(ht.tarf,''), '<[^>]+>', ' ', 'g') AS tarf,
-           b.title AS book_title, b.takhrij_author, b.takhrij_death,
-           (
-             SELECT COUNT(DISTINCT ic3.id)::int
-             FROM isnad_hadiths ih3
-             JOIN isnad_chains ic3 ON ic3.id = ih3.isnad_id
-             WHERE ih3.hadith_id = g2.hadith_main_id
-           ) AS chain_count
-     FROM hadith_group_matn g2
-     JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
-     JOIN books b ON b.id = ht.book_id
-     LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
-     LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
-     LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
-     WHERE g2.group_id = ANY($1::int[])
-       AND g2.hadith_main_id != $2
-       AND NOT (g2.hadith_main_id IN (
-         SELECT t2.hadith_id
-         FROM takhrij t2
-         WHERE t2.group_id = ANY($3::int[])
-       ))
-     ORDER BY COALESCE(comp.id::text, g2.hadith_main_id::text), b.takhrij_death ASC NULLS LAST`,
-    [matnGroupIds, hadithId, groupIds]
-  ).catch(() => ({ rows: [] as WitnessHadith[] }))
+  const companionSqlFilter =
+    companionFilterId === -1
+      ? 'WHERE companion_id IS NULL'
+      : companionFilterId > 0
+        ? 'WHERE companion_id = $6'
+        : ''
 
+  const dataParams: (number | number[])[] = [matnGroupIds, hadithId, groupIds, pageSize, offset]
+  if (companionFilterId > 0) dataParams.push(companionFilterId)
+
+  const [facetsRes, witnessesRes] = await Promise.all([
+    pool.query<CompanionFacet>(
+      `WITH base AS (
+         SELECT DISTINCT ON (g2.hadith_main_id)
+                comp.id AS companion_id,
+                COALESCE(comp.abb_name, comp.name, '— غير محدد الصحابي') AS companion_name
+         FROM hadith_group_matn g2
+         JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
+         LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
+         LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
+         LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
+         WHERE g2.group_id = ANY($1::int[])
+           AND g2.hadith_main_id != $2
+           AND NOT (g2.hadith_main_id IN (
+             SELECT t2.hadith_id
+             FROM takhrij t2
+             WHERE t2.group_id = ANY($3::int[])
+           ))
+         ORDER BY g2.hadith_main_id, comp.id ASC NULLS LAST
+       )
+       SELECT companion_id, companion_name, COUNT(*)::int AS cnt
+       FROM base
+       GROUP BY companion_id, companion_name
+       ORDER BY (companion_id IS NULL), cnt DESC, companion_name`,
+      [matnGroupIds, hadithId, groupIds]
+    ).catch(() => ({ rows: [] as CompanionFacet[] })),
+
+    pool.query<WitnessHadith>(
+      `WITH base AS (
+         SELECT DISTINCT ON (g2.hadith_main_id)
+                comp.id AS companion_id,
+                comp.name AS companion_name,
+                comp.abb_name AS companion_abb,
+                g2.hadith_main_id AS hadith_id,
+                regexp_replace(coalesce(ht.tarf,''), '<[^>]+>', ' ', 'g') AS tarf,
+                b.title AS book_title,
+                b.takhrij_author,
+                b.takhrij_death,
+                b.strong AS book_strong,
+                (
+                  SELECT COUNT(DISTINCT ic3.id)::int
+                  FROM isnad_hadiths ih3
+                  JOIN isnad_chains ic3 ON ic3.id = ih3.isnad_id
+                  WHERE ih3.hadith_id = g2.hadith_main_id
+                ) AS chain_count
+         FROM hadith_group_matn g2
+         JOIN hadith_toc ht ON ht.main_id = g2.hadith_main_id AND ht.is_leaf = true AND ht.is_paragraph = true
+         JOIN books b ON b.id = ht.book_id
+         LEFT JOIN isnad_hadiths ih2 ON ih2.hadith_id = g2.hadith_main_id
+         LEFT JOIN isnad_chains ic2 ON ic2.id = ih2.isnad_id
+         LEFT JOIN narrators comp ON comp.id = ic2.narrator_id_array[1] AND comp.is_companion = true
+         WHERE g2.group_id = ANY($1::int[])
+           AND g2.hadith_main_id != $2
+           AND NOT (g2.hadith_main_id IN (
+             SELECT t2.hadith_id
+             FROM takhrij t2
+             WHERE t2.group_id = ANY($3::int[])
+           ))
+         ORDER BY g2.hadith_main_id, comp.id ASC NULLS LAST
+       )
+       SELECT companion_id, companion_name, companion_abb, hadith_id, tarf,
+              book_title, takhrij_author, takhrij_death, chain_count
+       FROM base
+       ${companionSqlFilter}
+       ORDER BY (companion_id IS NULL), companion_id ASC NULLS LAST,
+                book_strong ASC NULLS LAST, takhrij_death ASC NULLS LAST, hadith_id ASC
+       LIMIT $4 OFFSET $5`,
+      dataParams
+    ).catch(() => ({ rows: [] as WitnessHadith[] })),
+  ])
+
+  const facets = facetsRes.rows
+  const totalWitnesses = facets.reduce((sum, f) => sum + Number(f.cnt), 0)
+  const uniqueCompanionsCount = facets.length
+  const filteredTotal = companionFilterId
+    ? Number(facets.find(f => (companionFilterId === -1 ? f.companion_id === null : Number(f.companion_id) === companionFilterId))?.cnt ?? witnessesRes.rows.length)
+    : totalWitnesses
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / pageSize))
   const witnesses = witnessesRes.rows
 
   // Group by companion for a cleaner display
@@ -121,8 +198,13 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
     byCompanion.get(key)!.push(w)
   }
 
-  const uniqueCompanions = Array.from(byCompanion.keys())
-  const hasSameCompanion = witnesses.some(w => !w.companion_id) // Some might be same companion
+  function pageHref(targetPage: number, compVal = companionParam) {
+    const p = new URLSearchParams()
+    if (compVal) p.set('companion', compVal)
+    if (targetPage > 1) p.set('page', String(targetPage))
+    const qs = p.toString()
+    return qs ? `/hadith/${hadithId}/witnesses?${qs}` : `/hadith/${hadithId}/witnesses`
+  }
 
   return (
     <div dir="rtl">
@@ -144,7 +226,7 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
         المتابعة هي رواية نفس الصحابي لكنها من طريق آخر. كلاهما يُستخدم لتقوية الحديث.
       </div>
 
-      {witnesses.length === 0 ? (
+      {totalWitnesses === 0 ? (
         <div className="bg-gray-50 rounded-xl border border-gray-100 p-8 text-center text-gray-500">
           لم يُعثر على شواهد أو متابعات لهذا الحديث
         </div>
@@ -153,18 +235,49 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
             <div className="bg-green-800 text-white rounded-xl p-3 text-center">
-              <div className="text-xl font-bold">{witnesses.length.toLocaleString('ar-EG')}</div>
+              <div className="text-xl font-bold">{totalWitnesses.toLocaleString('ar-EG')}</div>
               <div className="text-xs opacity-80">طريق موازٍ</div>
             </div>
             <div className="bg-amber-600 text-white rounded-xl p-3 text-center">
-              <div className="text-xl font-bold">{uniqueCompanions.length.toLocaleString('ar-EG')}</div>
-              <div className="text-xs opacity-80">مجموعة</div>
+              <div className="text-xl font-bold">{uniqueCompanionsCount.toLocaleString('ar-EG')}</div>
+              <div className="text-xs opacity-80">مجموعة صحابي</div>
             </div>
             <div className="bg-indigo-700 text-white rounded-xl p-3 text-center">
-              <div className="text-xl font-bold">{groupIds.length.toLocaleString('ar-EG')}</div>
-              <div className="text-xs opacity-80">عدد المجموعات</div>
+              <div className="text-xl font-bold">{matnGroupIds.length.toLocaleString('ar-EG')}</div>
+              <div className="text-xs opacity-80">عدد مجاميع المتن</div>
             </div>
           </div>
+
+          {facets.length > 1 && (
+            <div className="bg-white rounded-xl border border-gray-100 p-3 mb-5">
+              <div className="text-xs font-semibold text-gray-500 mb-2">تصفية بالصحابي ({facets.length.toLocaleString('ar-EG')}):</div>
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                <Link
+                  href={pageHref(1, '')}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    !companionParam ? 'bg-green-800 text-white border-green-800' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-green-50'
+                  }`}
+                >
+                  الكل ({totalWitnesses.toLocaleString('ar-EG')})
+                </Link>
+                {facets.map((f, idx) => {
+                  const val = f.companion_id != null ? String(f.companion_id) : 'none'
+                  const active = companionParam === val
+                  return (
+                    <Link
+                      key={`${val}-${idx}`}
+                      href={pageHref(1, val)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        active ? 'bg-green-800 text-white border-green-800' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-green-50'
+                      }`}
+                    >
+                      {f.companion_name} ({Number(f.cnt).toLocaleString('ar-EG')})
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Grouped by companion */}
           <div className="space-y-5">
@@ -218,6 +331,24 @@ export default async function HadithWitnessesPage({ params }: { params: Promise<
               </div>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-6 text-sm">
+              {pageNum > 1 && (
+                <Link href={pageHref(pageNum - 1)} className="px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-gray-50">
+                  السابق
+                </Link>
+              )}
+              <span className="text-xs text-gray-500">
+                صفحة {pageNum.toLocaleString('ar-EG')} من {totalPages.toLocaleString('ar-EG')} ({filteredTotal.toLocaleString('ar-EG')} طريق)
+              </span>
+              {pageNum < totalPages && (
+                <Link href={pageHref(pageNum + 1)} className="px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-gray-50">
+                  التالي
+                </Link>
+              )}
+            </div>
+          )}
         </>
       )}
 

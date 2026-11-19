@@ -58,6 +58,9 @@ export default function CommentaryInline({
   includeGroupFallback?: boolean
 }) {
   const [contentRows, setContentRows] = useState<ContentRow[]>([])
+  const [tab, setTab] = useState<'direct' | 'group'>('direct')
+  const [bookFilter, setBookFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -66,6 +69,9 @@ export default function CommentaryInline({
   useEffect(() => {
     setLoading(true)
     setError(false)
+    setTab('direct')
+    setBookFilter('')
+    setPage(1)
     const params = new URLSearchParams()
     if (typesKey) {
       params.set('types', typesKey)
@@ -96,10 +102,65 @@ export default function CommentaryInline({
   )
 
   const isMultiType = Boolean(commentaryTypes && commentaryTypes.length > 1)
+  const directRows = contentRows.filter(r => !r.is_group_fallback)
+  const groupRows = contentRows.filter(r => r.is_group_fallback)
+  const showSplitTabs = directRows.length > 0 && groupRows.length > 0
+  const activeList = showSplitTabs ? (tab === 'direct' ? directRows : groupRows) : contentRows
+
+  const bookMap = new Map<string, number>()
+  for (const r of activeList) bookMap.set(r.book_name, (bookMap.get(r.book_name) || 0) + 1)
+  const bookOptions = Array.from(bookMap.entries()).map(([name, cnt]) => ({ name, cnt }))
+
+  const filteredList = bookFilter ? activeList.filter(r => r.book_name === bookFilter) : activeList
+  const pageSize = 20
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedRows = filteredList.length > pageSize
+    ? filteredList.slice((safePage - 1) * pageSize, safePage * pageSize)
+    : filteredList
 
   return (
     <div dir="rtl" className="space-y-4">
-      {contentRows.map(row => (
+      {(showSplitTabs || bookOptions.length > 2) && (
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          {showSplitTabs ? (
+            <div className="ui-segmented w-fit">
+              <button
+                type="button"
+                onClick={() => { setTab('direct'); setBookFilter(''); setPage(1) }}
+                className={`ui-segmented-item ${tab === 'direct' ? 'ui-segmented-item-active' : ''}`}
+              >
+                شروح هذا الحديث ({directRows.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTab('group'); setBookFilter(''); setPage(1) }}
+                className={`ui-segmented-item ${tab === 'group' ? 'ui-segmented-item-active' : ''}`}
+              >
+                شروح روايات المجموعة ({groupRows.length})
+              </button>
+            </div>
+          ) : <span />}
+
+          {bookOptions.length > 1 && activeList.length > 5 && (
+            <label className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+              <span>الكتاب:</span>
+              <select
+                value={bookFilter}
+                onChange={e => { setBookFilter(e.target.value); setPage(1) }}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-ink"
+              >
+                <option value="">كل الكتب ({activeList.length})</option>
+                {bookOptions.map(b => (
+                  <option key={b.name} value={b.name}>{b.name} ({b.cnt})</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
+
+      {pagedRows.map(row => (
         <div key={`${row.id}-${row.type_id ?? ''}`} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="bg-gray-50 border-b border-gray-100 px-4 py-2.5 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -141,6 +202,29 @@ export default function CommentaryInline({
           </div>
         </div>
       ))}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs text-gray-500">
+          <button
+            type="button"
+            disabled={safePage <= 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            className="px-3 py-1 rounded-lg border border-border bg-surface hover:bg-gray-50 disabled:opacity-40"
+          >
+            السابق
+          </button>
+          <span>
+            صفحة {safePage.toLocaleString('ar-EG')} من {totalPages.toLocaleString('ar-EG')} ({filteredList.length.toLocaleString('ar-EG')} نص)
+          </span>
+          <button
+            type="button"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            className="px-3 py-1 rounded-lg border border-border bg-surface hover:bg-gray-50 disabled:opacity-40"
+          >
+            التالي
+          </button>
+        </div>
+      )}
     </div>
   )
 }

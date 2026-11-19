@@ -146,22 +146,25 @@ const fetchTakhrij = cache(async (hadithId: number): Promise<{
   const baseText = baseRaw ? extractMatnForComparison(baseRaw) : null
 
   const otherSourcesRes = await pool.query(
-    `SELECT DISTINCT ON (hsc.book_id)
-       hsc.id,
-       hsc.book_id,
-       COALESCE(b.title, hsc.book_name, 'مصدر') AS book_title,
-       hsc.section_text,
-       hsc.part_text AS chapter_text,
-       hsc.part_num,
-       hsc.page_num,
-       hsc.tarf
-     FROM hadith_service_links hsl
-     JOIN hadith_service_content hsc ON hsc.id = hsl.service_content_id
-     LEFT JOIN books b ON b.id = hsc.book_id
-     WHERE hsl.hadith_id = $1
-       AND hsl.type_id = 8
-     ORDER BY hsc.book_id, hsc.id
-     LIMIT 50`,
+    `SELECT * FROM (
+       SELECT DISTINCT ON (hsc.id)
+         hsc.id,
+         hsc.book_id,
+         COALESCE(b.title, hsc.book_name, 'مصدر') AS book_title,
+         hsc.section_text,
+         hsc.part_text AS chapter_text,
+         hsc.part_num,
+         hsc.page_num,
+         hsc.tarf
+       FROM hadith_service_links hsl
+       JOIN hadith_service_content hsc ON hsc.id = hsl.service_content_id
+       LEFT JOIN books b ON b.id = hsc.book_id
+       WHERE hsl.hadith_id = $1
+         AND hsl.type_id IN (8, 9)
+       ORDER BY hsc.id
+     ) sub
+     ORDER BY sub.book_id NULLS LAST, sub.part_num NULLS LAST, sub.page_num NULLS LAST, sub.id
+     LIMIT 100`,
     [hadithId]
   ).catch(() => ({ rows: [] }))
 

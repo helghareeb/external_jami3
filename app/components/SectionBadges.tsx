@@ -24,16 +24,20 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
        GROUP BY hsl.type_id`,
       [hadithId]
     ).catch(() => empty),
-    // Group-level شرح fallback count (type_id = 6 via takhrij)
+    // Group-level شرح fallback count (type_id = 6 via takhrij, excluding direct links)
     pool.query<{ n: number }>(
       `SELECT COUNT(DISTINCT hsl.service_content_id)::int AS n
        FROM takhrij t_self
        JOIN takhrij t_other ON t_other.group_id = t_self.group_id AND t_other.hadith_id <> $1
        JOIN hadith_service_links hsl ON hsl.hadith_id = t_other.hadith_id AND hsl.type_id = 6
-       WHERE t_self.hadith_id = $1`,
+       WHERE t_self.hadith_id = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM hadith_service_links hd
+           WHERE hd.hadith_id = $1 AND hd.type_id = 6 AND hd.service_content_id = hsl.service_content_id
+         )`,
       [hadithId]
     ).catch(() => empty),
-    // /api/hadith/[id]/matn-similarity (cap 150) and /parallel (cap 200) across ALL groups
+    // Parallel count across ALL takhrij groups (matches /parallel & /matn-similarity)
     pool.query<{ n: number }>(
       `SELECT COUNT(DISTINCT t.hadith_id)::int AS n
        FROM takhrij t
@@ -44,8 +48,8 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
       [hadithId]
     ).catch(() => empty),
     // /api/hadith/[id]/witnesses-inline — HGamhAlMatn \ HTakhreeg (matches Windows Shwahed)
-    pool.query<{ paths: number; companions: number; unknown: boolean }>(
-      `SELECT COUNT(DISTINCT COALESCE(comp.id::text, g2.hadith_main_id::text))::int AS paths,
+    pool.query<{ total_witnesses: number; companions: number; unknown: boolean }>(
+      `SELECT COUNT(DISTINCT g2.hadith_main_id)::int AS total_witnesses,
               COUNT(DISTINCT comp.id)::int AS companions,
               COALESCE(bool_or(comp.id IS NULL), false) AS unknown
        FROM hadith_group_matn g2
@@ -114,22 +118,26 @@ const fetchSectionChips = cache(async (hadithId: number): Promise<Record<string,
     if (cfg.commentaryType == null) continue
     const r = byType.get(cfg.commentaryType)
     if (r && r.n > 0) {
-      chips[cfg.id] = [{ text: `${Math.min(r.n, 100)} نص في ${r.books} كتاب` }]
+      const list: Chip[] = [{ text: `${Math.min(r.n, 100)} نص في ${r.books} كتاب` }]
+      if (cfg.includeGroupFallback && cfg.commentaryType === 6 && groupSharhN > 0) {
+        list.push({ text: `+${groupSharhN} بالمجموعة`, tone: 'info' })
+      }
+      chips[cfg.id] = list
     } else if (cfg.includeGroupFallback && cfg.commentaryType === 6 && groupSharhN > 0) {
-      chips[cfg.id] = [{ text: `${Math.min(groupSharhN, 100)} شرح بالمجموعة`, tone: 'info' }]
+      chips[cfg.id] = [{ text: `${groupSharhN} شرح بالمجموعة`, tone: 'info' }]
     }
   }
 
   const others = groupRes.rows[0]?.n ?? 0
   if (others > 0) {
-    chips['matn-similarity'] = [{ text: `${Math.min(others, 149)} رواية للمقارنة` }]
-    chips['variants'] = [{ text: `${Math.min(others, 200) + 1} رواية` }]
+    chips['matn-similarity'] = [{ text: `${others} رواية للمقارنة` }]
+    chips['variants'] = [{ text: `${others + 1} رواية` }]
   }
 
   const w = witnessesRes.rows[0]
-  if (w && w.paths > 0) {
+  if (w && w.total_witnesses > 0) {
     chips['svc-shawahed'] = [
-      { text: `${Math.min(w.paths, 60)} طريق موازٍ` },
+      { text: `${w.total_witnesses} شاهد` },
       { text: `${w.companions + (w.unknown ? 1 : 0)} مجموعة`, tone: 'violet' },
     ]
   }

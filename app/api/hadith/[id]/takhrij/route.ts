@@ -38,7 +38,7 @@ export async function GET(
      WHERE t.group_id = ANY($1::int[])
        AND t.hadith_id != $2
      ORDER BY t.hadith_id, t.book_id, t.hadith_id
-     LIMIT 500`,
+     LIMIT 1500`,
     [groupIds, mainId]
   )
 
