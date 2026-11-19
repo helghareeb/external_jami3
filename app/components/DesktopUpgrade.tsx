@@ -41,7 +41,7 @@ export default function DesktopUpgrade() {
     return () => { live = false; clearTimeout(t) }
   }, [])
 
-  if (!show || pathname === '/offline') return null
+  if (!show || pathname === '/offline' || pathname === '/apps') return null
   const close = () => {
     try { localStorage.setItem(DISMISS_KEY, show.offline ? 'offline' : 'online') } catch {}
     setShow(null)
@@ -74,7 +74,7 @@ export default function DesktopUpgrade() {
           )
         })}
       </ul>
-      <a href="/offline#desktop" onClick={close}
+      <a href="/apps#desktop" onClick={close}
         className="mt-3 flex justify-center rounded-full bg-[#C9A96B] text-[#13261b] text-sm font-bold px-4 py-2">
         التنزيل والتفاصيل
       </a>

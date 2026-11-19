@@ -4,13 +4,14 @@
 // this reads the address the reader asked for (/hadith/123, /narrators/network, /search?q=…). Once
 // the encyclopedia is on the device it loads the offline build of the site (public/offline/app,
 // built by scripts/offline/build-offline-app.mjs), which renders that very page with the site's own
-// code against the device's copy of the database. /offline itself is the download screen.
+// code against the device's copy of the database. /offline itself is the encyclopedia's download screen, used
+// inside our apps (desktop app, Android app, and the browser app for those who installed it before). The
+// installers are on /apps: an ordinary browser is sent there, unless it already holds a copy to manage.
 import { useEffect, useRef, useState } from 'react'
 import OfflineManager from './OfflineManager'
-import DesktopApps from './DesktopApps'
 import AndroidApp from './AndroidApp'
-import { isAndroidDevice } from '@/lib/androidApp'
 import { refreshOfflineStatus, useOfflineState } from '@/lib/offline/client'
+import { whereAmI, type Where } from '@/lib/appContext'
 
 declare global {
   interface Window { __OFFLINE_TARGET?: string }
@@ -21,35 +22,33 @@ const APP_CSS = '/offline/app/app.css'
 
 export default function OfflineApp() {
   const [target, setTarget] = useState<string | null>(null)
-  const [androidFirst, setAndroidFirst] = useState(false)
+  const [where, setWhere] = useState<Where | null>(null)
+  const [toApps, setToApps] = useState<boolean | null>(null)
   const offline = useOfflineState()
 
   useEffect(() => {
     // The address asked for (captured before Next.js rewrote the bar to /offline)
-    const t = window.__OFFLINE_TARGET || location.pathname + location.search
-    setTarget(t.replace(/\/+$/, '') || '/')
-    setAndroidFirst(isAndroidDevice())
-    refreshOfflineStatus()
+    const t = (window.__OFFLINE_TARGET || location.pathname + location.search).replace(/\/+$/, '') || '/'
+    setTarget(t)
+    const w = whereAmI()
+    setWhere(w)
+    refreshOfflineStatus().then(st => {
+      const downloadPage = t === '/offline' || t.startsWith('/offline?')
+      const go = downloadPage && w === 'browser' && navigator.onLine && !st?.ready && !(st && st.staged > 0)
+      setToApps(go)
+      if (go) location.replace('/apps')
+    })
   }, [])
 
   if (!target) return <Loading />
   const online = typeof navigator !== 'undefined' && navigator.onLine
   if (target === '/offline' || target.startsWith('/offline?')) {
+    if (toApps !== false) return <Loading />
     return (
       <div className="max-w-4xl mx-auto font-sans">
         <OfflineBar online={online} />
         <OfflineManager />
-        {androidFirst ? (
-          <>
-            <AndroidApp />
-            <DesktopApps />
-          </>
-        ) : (
-          <>
-            <DesktopApps />
-            <AndroidApp />
-          </>
-        )}
+        {where === 'android-app' && <AndroidApp />}
       </div>
     )
   }

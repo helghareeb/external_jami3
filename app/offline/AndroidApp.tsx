@@ -61,9 +61,6 @@ export default function AndroidApp() {
         </>
       ) : (
         <>
-          <p className="text-sm text-muted mt-1">
-            تطبيق أندرويد مستقل يُثبَّت على هاتفك مباشرة، ويعمل دون إنترنت (أندرويد <bdi dir="ltr">{latest.minAndroid || '8.0'}</bdi> فأحدث). الإصدار <bdi dir="ltr">{latest.version}</bdi>.
-          </p>
           <div className={'mt-3 rounded-xl border p-3 ' + (mine ? 'border-primary bg-primary-soft' : 'border-border')}>
             <p className="font-bold text-sm flex items-center gap-2">
               <AndroidIcon className={'w-5 h-5 shrink-0 ' + (mine ? 'text-primary' : 'text-muted')} />
@@ -80,7 +77,7 @@ export default function AndroidApp() {
               </a>
             </div>
             <p className="text-xs text-muted mt-2">
-              عند التثبيت أول مرة قد يطلب هاتفك السماح بالتثبيت من هذا المتصفح («تثبيت التطبيقات غير المعروفة»).
+              إن طُلب: اسمح بالتثبيت من المتصفح
             </p>
           </div>
         </>

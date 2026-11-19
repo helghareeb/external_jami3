@@ -18,8 +18,8 @@ const PLATFORMS: {
   links: { key: DownloadKey; label: React.ReactNode }[]
 }[] = [
   { os: 'windows', name: 'ويندوز', Icon: WindowsIcon, links: [{ key: 'windows', label: 'تنزيل للويندوز' }] },
-  { os: 'mac', name: 'ماك', Icon: AppleIcon, links: [{ key: 'macArm', label: <>معالج <bdi dir="ltr">Apple</bdi> (<bdi dir="ltr">M1</bdi> فما بعده)</> }, { key: 'macIntel', label: <>معالج <bdi dir="ltr">Intel</bdi></> }] },
-  { os: 'linux', name: 'لينكس', Icon: LinuxIcon, links: [{ key: 'linuxAppImage', label: <bdi dir="ltr">AppImage</bdi> }, { key: 'linuxDeb', label: <>حزمة <bdi dir="ltr">deb</bdi> (أوبونتو ودبيان)</> }] },
+  { os: 'mac', name: 'ماك', Icon: AppleIcon, links: [{ key: 'macArm', label: <bdi dir="ltr">Apple Silicon</bdi> }, { key: 'macIntel', label: <bdi dir="ltr">Intel</bdi> }] },
+  { os: 'linux', name: 'لينكس', Icon: LinuxIcon, links: [{ key: 'linuxAppImage', label: <bdi dir="ltr">AppImage</bdi> }, { key: 'linuxDeb', label: <bdi dir="ltr">deb</bdi> }] },
 ]
 
 export default function DesktopApps() {
@@ -55,9 +55,6 @@ export default function DesktopApps() {
         </>
       ) : (
         <>
-          <p className="text-sm text-muted mt-1">
-            برنامج يُثبَّت على الجهاز ويتحدّث تلقائيًا{latest.offline ? '، ويعمل دون إنترنت' : ''}. الإصدار <bdi dir="ltr">{latest.version}</bdi>.
-          </p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-3">
             {ordered.map(({ os: pos, name, Icon, links: all }) => {
               const links = all.filter(l => latest.downloads[l.key])
@@ -88,10 +85,10 @@ export default function DesktopApps() {
                     </div>
                   )}
                   {pos === 'mac' && links.length > 0 && (
-                    <p className="text-xs text-muted mt-2">أول تشغيل: انقر بالزر الأيمن على التطبيق ثم «فتح»، لأن النسخة غير موقّعة بعد.</p>
+                    <p className="text-xs text-muted mt-2">أول مرة: زر أيمن ثم «فتح»</p>
                   )}
                   {pos === 'windows' && links.length > 0 && (
-                    <p className="text-xs text-muted mt-2">إن ظهر تحذير ويندوز: «مزيد من المعلومات» ثم «تشغيل على أي حال».</p>
+                    <p className="text-xs text-muted mt-2">إن ظهر تحذير: «مزيد من المعلومات» ثم «تشغيل على أي حال»</p>
                   )}
                 </li>
               )
