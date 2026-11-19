@@ -8,6 +8,7 @@
   "license": "UNLICENSED",
   "private": true,
   "main": "main.js",
+  "hadithOffline": false,
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",

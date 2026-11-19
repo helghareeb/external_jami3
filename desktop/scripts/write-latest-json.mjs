@@ -1,7 +1,7 @@
 // Writes latest.json next to the installers: what https://hadith.dev/offline shows as download links.
 //   node desktop/scripts/write-latest-json.mjs <folder with the installers> <version>
 // Only the files actually present are listed, so a platform whose build is missing simply isn't offered.
-import { readdirSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const [dir, version] = process.argv.slice(2)
@@ -22,6 +22,14 @@ const downloads = {
 }
 for (const k of Object.keys(downloads)) if (!downloads[k]) delete downloads[k]
 
-const out = { version: version.replace(/^desktop-v|^v/, ''), date: new Date().toISOString().slice(0, 10), downloads }
+// "hadithOffline" in desktop/package.json: true once the app works without a connection (stage 2). Only then
+// does hadith.dev ask readers who installed the browser app (PWA) to switch to the desktop app.
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+const out = {
+  version: version.replace(/^desktop-v|^v/, ''),
+  date: new Date().toISOString().slice(0, 10),
+  offline: pkg.hadithOffline === true,
+  downloads,
+}
 writeFileSync(join(dir, 'latest.json'), JSON.stringify(out, null, 2) + '\n')
 console.log(JSON.stringify(out, null, 2))
