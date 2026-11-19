@@ -231,7 +231,7 @@ function NumberingToggle() {
     <button
       onClick={toggle}
       title={pref === 'harf' ? 'التبديل الى ترقيم المطبوع' : 'التبديل الى ترقيم حرف'}
-      className="flex items-center gap-1 text-[11px] text-[#F8F1E4]/80 hover:text-[#FFFDF7] border border-[#C9A96B]/35 hover:border-[#C9A96B] min-h-11 px-2.5 py-1 rounded-lg transition-colors shrink-0 whitespace-nowrap"
+      className="flex items-center gap-1 text-[11px] text-[#F8F1E4]/80 hover:text-[#FFFDF7] border border-[#C9A96B]/35 hover:border-[#C9A96B] min-h-11 px-1.5 min-[820px]:px-2.5 py-1 rounded-lg transition-colors shrink-0 whitespace-nowrap"
     >
       <span className={pref === 'harf' ? 'text-[#E6C77A] font-bold' : 'text-[#F8F1E4]/55'}>حرف</span>
       <UiIcon name="arrow" size={14} className="text-[#C9A96B]/70" />
@@ -265,7 +265,7 @@ function NumeralToggle() {
       onClick={toggle}
       data-no-convert
       title="تبديل صيغة الأرقام بين الإنجليزية (123) والعربية (١٢٣) — يشمل الموقع كله"
-      className="flex items-center justify-center gap-1 text-[11px] text-[#F8F1E4]/80 hover:text-[#FFFDF7] border border-[#C9A96B]/35 hover:border-[#C9A96B] min-h-11 px-2.5 py-1 rounded-lg transition-colors shrink-0 whitespace-nowrap"
+      className="flex items-center justify-center gap-1 text-[11px] text-[#F8F1E4]/80 hover:text-[#FFFDF7] border border-[#C9A96B]/35 hover:border-[#C9A96B] min-h-11 px-1.5 min-[820px]:px-2.5 py-1 rounded-lg transition-colors shrink-0 whitespace-nowrap"
     >
       <span className={pref === 'western' ? 'text-[#E6C77A] font-bold' : 'text-[#F8F1E4]/55'}>123</span>
       <UiIcon name="arrow" size={14} className="text-[#C9A96B]/70" />
@@ -296,23 +296,23 @@ export default function NavHeader() {
 
   return (
     <nav ref={navRef} aria-label="التنقل الرئيسي" className="site-nav theme-texture relative z-30 bg-[#0F3D2E] text-[#F8F1E4] font-sans border-b border-[#C9A96B]/40" dir="rtl">
-      <div className="max-w-[1440px] mx-auto flex items-center gap-1.5 px-3 sm:px-6 lg:px-7 py-1.5 min-w-0">
+      <div className="max-w-[1440px] mx-auto flex items-center gap-1.5 px-2.5 sm:px-4 md:px-6 lg:px-7 py-1.5 min-w-0">
         {/* The landscape logo on a cream plate: its green text needs a light ground on the green bar */}
-        <a href="/" aria-label="الجامع — موسوعة الحديث النبوي" className="shrink-0 ml-1 sm:ml-2 md:max-[1150px]:ml-0.5 xl:ml-3 rounded-lg bg-[#FFFDF7] px-2.5 md:max-[1150px]:px-2 py-1 ring-1 ring-[#C9A96B]/50 transition-shadow hover:ring-[#C9A96B]">
-          <img src="/assets/brand/al-jami-horizontal.png" alt="الجامع — موسوعة الحديث النبوي" width={104} height={40} className="block h-9 sm:h-10 md:max-[1150px]:h-8 w-auto" />
+        <a href="/" aria-label="الجامع — موسوعة الحديث النبوي" className="shrink-0 ml-1 sm:ml-2 min-[700px]:max-[1150px]:ml-0.5 xl:ml-3 rounded-lg bg-[#FFFDF7] px-2.5 min-[700px]:max-[1150px]:px-2 py-1 ring-1 ring-[#C9A96B]/50 transition-shadow hover:ring-[#C9A96B]">
+          <img src="/assets/brand/al-jami-horizontal.png" alt="الجامع — موسوعة الحديث النبوي" width={104} height={40} className="block h-9 sm:h-10 min-[700px]:max-[1150px]:h-8 w-auto" />
         </a>
 
         <div className="hidden min-[1150px]:block w-px h-5 bg-[#C9A96B]/35 mx-1 shrink-0" />
 
         {/* Desktop: inline categories with dropdowns */}
-        <div className="hidden md:flex items-center gap-0 xl:gap-0.5 flex-1 min-w-0">
+        <div className="hidden min-[700px]:flex items-center gap-0 xl:gap-0.5 flex-1 min-w-0">
           {CATEGORIES.map(cat => (
             <div key={cat.id} className="shrink-0">
               <button
                 type="button"
                 onClick={() => toggle(cat.id)}
                 aria-expanded={open === cat.id}
-                className={`flex items-center gap-0.5 xl:gap-1 text-[0.8125rem] md:max-[1050px]:text-[0.75rem] xl:text-[0.8438rem] font-sans px-1.5 md:max-[1050px]:px-1 xl:px-2.5 py-2.5 rounded-md transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-0.5 xl:gap-1 text-[0.8125rem] min-[700px]:max-[1050px]:text-[0.75rem] xl:text-[0.8438rem] font-sans px-1.5 min-[700px]:max-[1050px]:px-1 xl:px-2.5 py-2.5 rounded-md transition-colors whitespace-nowrap ${
                   open === cat.id
                     ? 'bg-[#C9A96B] text-[#0F3D2E]'
                     : 'text-[#F8F1E4]/80 hover:text-[#FFFDF7] hover:bg-white/10'
@@ -351,12 +351,12 @@ export default function NavHeader() {
         </div>
 
         {/* Mobile: push toggles + menu button to the end */}
-        <div className="flex-1 md:hidden" />
+        <div className="flex-1 min-[700px]:hidden" />
 
         <div className="flex items-center gap-1.5 shrink-0">
           <AccountButton />
           <ThemeToggle />
-          <div className="hidden md:flex items-center gap-1 xl:gap-2">
+          <div className="hidden min-[700px]:flex items-center gap-1 xl:gap-2">
             <NumberingToggle />
             <NumeralToggle />
           </div>
@@ -368,7 +368,7 @@ export default function NavHeader() {
           onClick={() => { setMobileOpen(v => !v); setOpen(null) }}
           aria-label="القائمة"
           aria-expanded={mobileOpen}
-          className="md:hidden flex items-center justify-center w-11 h-11 rounded-full text-[#F8F1E4] border border-[#C9A96B]/40 hover:border-[#C9A96B] hover:bg-white/10 transition-colors shrink-0"
+          className="min-[700px]:hidden flex items-center justify-center w-11 h-11 rounded-full text-[#F8F1E4] border border-[#C9A96B]/40 hover:border-[#C9A96B] hover:bg-white/10 transition-colors shrink-0"
         >
           <UiIcon name={mobileOpen ? 'close' : 'menu'} size={18} />
         </button>
@@ -376,7 +376,7 @@ export default function NavHeader() {
 
       {/* Mobile: collapsible category menu (accordion — avoids clipping dropdowns) */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#C9A96B]/30 bg-surface text-ink max-h-[72vh] overflow-y-auto overscroll-contain">
+        <div className="min-[700px]:hidden border-t border-[#C9A96B]/30 bg-surface text-ink max-h-[72vh] overflow-y-auto overscroll-contain">
           <div className="flex flex-wrap items-center gap-3 p-3 bg-[#0F3D2E]">
             <NumberingToggle />
             <NumeralToggle />

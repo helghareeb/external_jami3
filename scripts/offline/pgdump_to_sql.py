@@ -20,7 +20,7 @@ import sys
 import zlib
 
 # Never shipped even if a later dump includes them: accounts, sessions, analytics, personal libraries
-PRIVATE_TABLES = re.compile(r'^(users|sessions|login_links|login_codes|api_tokens|oauth_.*|page_views|mcp_events|collections|highlights|library_.*|user_.*|admin_.*)$')
+PRIVATE_TABLES = re.compile(r'^(users|sessions|login_links|login_codes|api_tokens|oauth_.*|page_views|mcp_events|mcp_usage|collections|collection_items|highlights|library_.*|user_.*|admin_.*)$')
 PIECE_MAX = 48_000_000
 
 # --- pg_dump custom format ------------------------------------------------------------------
