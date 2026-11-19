@@ -1,0 +1,58 @@
+# Desktop installers for hadith.dev (Windows, macOS, Linux). See docs/desktop.md.
+# appId is permanent once a version has shipped: it identifies the app for updates and the OS.
+appId: dev.hadith.desktop
+productName: Hadith
+copyright: hadith.dev
+artifactName: hadith-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - main.js
+  - preload.js
+  - pages/**
+  - package.json
+
+compression: maximum
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]           # one installer; Windows on ARM runs it too
+
+nsis:
+  oneClick: true          # one click, no questions: installs for this user, no admin rights needed
+  perMachine: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: الجامع — hadith.dev
+  deleteAppDataOnUninstall: false   # keeps the downloaded database if the app is reinstalled
+
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip           # electron-updater on macOS updates from the zip
+      arch: [x64, arm64]
+  category: public.app-category.education
+  identity: null            # unsigned until there is an Apple Developer account: no auto-update on macOS yet
+
+dmg:
+  title: الجامع — hadith.dev
+
+linux:
+  target:
+    - target: AppImage      # auto-updates
+      arch: [x64]
+    - target: deb           # updated by downloading the new .deb
+      arch: [x64]
+  category: Education
+  synopsis: موسوعة الحديث — hadith.dev
+  maintainer: hadith.dev
+
+# Updates: electron-updater reads latest.yml / latest-mac.yml / latest-linux.yml from here.
+publish:
+  provider: generic
+  url: https://files.hadith.dev/desktop

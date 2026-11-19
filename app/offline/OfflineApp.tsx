@@ -7,6 +7,7 @@
 // code against the device's copy of the database. /offline itself is the download screen.
 import { useEffect, useRef, useState } from 'react'
 import OfflineManager from './OfflineManager'
+import DesktopApps from './DesktopApps'
 import { refreshOfflineStatus, useOfflineState } from '@/lib/offline/client'
 
 declare global {
@@ -34,6 +35,7 @@ export default function OfflineApp() {
       <div className="max-w-4xl mx-auto font-sans">
         <OfflineBar online={online} />
         <OfflineManager />
+        <DesktopApps />
       </div>
     )
   }
